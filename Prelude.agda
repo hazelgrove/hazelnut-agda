@@ -33,12 +33,17 @@ module Prelude where
   A × B = Σ A λ _ → B
 
   infixr 1 _×_
+  infixr 1 _+_
 
   -- equality
   data _==_ {l : Level} {A : Set l} (M : A) : A → Set l where
     refl : M == M
 
   infixr 9 _==_
+
+  -- disequality
+  _≠_ : {l : Level} {A : Set l} → (a b : A) → Set l
+  a ≠ b = (a == b) → ⊥
 
   {-# BUILTIN EQUALITY _==_ #-}
 
