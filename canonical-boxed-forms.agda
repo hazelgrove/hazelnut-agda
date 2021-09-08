@@ -6,12 +6,12 @@ open import core
 open import canonical-value-forms
 
 module canonical-boxed-forms where
-  canonical-boxed-forms-b : ∀{Δ d} →
-                            Δ , ∅ ⊢ d :: b →
+  canonical-boxed-forms-num : ∀{Δ d} →
+                            Δ , ∅ ⊢ d :: num →
                             d boxedval →
-                            d == c
-  canonical-boxed-forms-b (TAVar _) (BVVal ())
-  canonical-boxed-forms-b wt (BVVal v) = canonical-value-forms-b wt v
+                            Σ[ n ∈ Nat ] (d == N n)
+  canonical-boxed-forms-num (TAVar _) (BVVal ())
+  canonical-boxed-forms-num wt (BVVal v) = canonical-value-forms-num wt v
 
   -- this type gives somewhat nicer syntax for the output of the canonical
   -- forms lemma for boxed values at arrow type
@@ -58,11 +58,11 @@ module canonical-boxed-forms where
   canonical-boxed-forms-coverage : ∀{Δ d τ} →
                                    Δ , ∅ ⊢ d :: τ →
                                    d boxedval →
-                                   τ ≠ b →
+                                   τ ≠ num →
                                    ((τ1 : htyp) (τ2 : htyp) → τ ≠ (τ1 ==> τ2)) →
                                    τ ≠ ⦇-⦈ →
                                    ⊥
-  canonical-boxed-forms-coverage TAConst (BVVal x) nb na nh = nb refl
+  canonical-boxed-forms-coverage TANum (BVVal x) nb na nh = nb refl
   canonical-boxed-forms-coverage (TAVar x₁) (BVVal ()) nb na nh
   canonical-boxed-forms-coverage (TALam _ wt) (BVVal x₁) nb na nh = na _ _ refl
   canonical-boxed-forms-coverage (TAAp wt wt₁) (BVVal ()) nb na nh

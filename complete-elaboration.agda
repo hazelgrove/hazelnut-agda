@@ -13,7 +13,11 @@ module complete-elaboration where
                                e ecomplete →
                                Γ ⊢ e ⇒ τ ~> d ⊣ Δ →
                                (d dcomplete × τ tcomplete × Δ == ∅)
-    complete-elaboration-synth gc ec ESConst = DCConst , TCBase , refl
+    complete-elaboration-synth gc ec ESNum = DCNum , TCNum , refl
+    complete-elaboration-synth gc (ECPlus ec₁ ec₂) (ESPlus {Δ1 = Δ1} {Δ2 = Δ2} apt dis x₁ x₂)
+      with complete-elaboration-ana gc ec₁ TCNum x₁ | complete-elaboration-ana gc ec₂ TCNum x₂
+    ... | d1comp , t1comp , refl | d2comp , t2comp , refl =
+      DCPlus (DCCast d1comp t1comp TCNum) (DCCast d2comp t2comp TCNum) , TCNum , refl
     complete-elaboration-synth gc ec (ESVar x₁) = DCVar , gc _ _ x₁ , refl
     complete-elaboration-synth gc (ECLam2 ec x₁) (ESLam x₂ exp)
       with complete-elaboration-synth (gcomp-extend gc x₁ x₂) ec exp

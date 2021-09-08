@@ -12,8 +12,10 @@ module binders-disjoint-checks where
     lem-bdσ-lam BDσId = BDσId
     lem-bdσ-lam (BDσSubst x₁ bd) = BDσSubst (lem-bd-lam x₁) (lem-bdσ-lam bd)
 
-    lem-bd-lam :  ∀{ d1 x τ1 d} → binders-disjoint d1 (·λ_[_]_ x  τ1 d) → binders-disjoint d1 d
-    lem-bd-lam BDConst = BDConst
+    lem-bd-lam :  ∀{ d1 x τ1 d} → binders-disjoint d1 (·λ_[_]_ x τ1 d) → binders-disjoint d1 d
+    --lem-bd-lam BDConst = BDConst
+    lem-bd-lam BDNum = BDNum
+    lem-bd-lam (BDPlus bd bd₁) = BDPlus (lem-bd-lam bd) (lem-bd-lam bd₁)
     lem-bd-lam BDVar = BDVar
     lem-bd-lam (BDLam bd (UBLam2 x₂ x₃)) = BDLam (lem-bd-lam bd) x₃
     lem-bd-lam (BDHole x₁) = BDHole (lem-bdσ-lam x₁)
@@ -28,7 +30,8 @@ module binders-disjoint-checks where
     lem-bdσ-hole (BDσSubst x bd) = BDσSubst (lem-bd-hole x) (lem-bdσ-hole bd)
 
     lem-bd-hole : ∀{d1 d u σ} → binders-disjoint d1 ⦇⌜ d ⌟⦈⟨ u , σ ⟩ → binders-disjoint d1 d
-    lem-bd-hole BDConst = BDConst
+    lem-bd-hole BDNum = BDNum
+    lem-bd-hole (BDPlus bd bd₁) = BDPlus (lem-bd-hole bd) (lem-bd-hole bd₁)
     lem-bd-hole BDVar = BDVar
     lem-bd-hole (BDLam bd (UBNEHole x₁ x₂)) = BDLam (lem-bd-hole bd) x₂
     lem-bd-hole (BDHole x) = BDHole (lem-bdσ-hole x)
@@ -43,7 +46,8 @@ module binders-disjoint-checks where
     lem-bdσ-cast (BDσSubst x bd) = BDσSubst (lem-bd-cast x) (lem-bdσ-cast bd)
 
     lem-bd-cast : ∀{d1 d τ1 τ2} → binders-disjoint d1 (d ⟨ τ1 ⇒ τ2 ⟩) → binders-disjoint d1 d
-    lem-bd-cast BDConst = BDConst
+    lem-bd-cast BDNum = BDNum
+    lem-bd-cast (BDPlus bd bd₁) = BDPlus (lem-bd-cast bd) (lem-bd-cast bd₁)
     lem-bd-cast BDVar = BDVar
     lem-bd-cast (BDLam bd (UBCast x₁)) = BDLam (lem-bd-cast bd) x₁
     lem-bd-cast (BDHole x) = BDHole (lem-bdσ-cast x)
@@ -58,7 +62,8 @@ module binders-disjoint-checks where
     lem-bdσ-failedcast (BDσSubst x bd) = BDσSubst (lem-bd-failedcast x) (lem-bdσ-failedcast bd)
 
     lem-bd-failedcast : ∀{d1 d τ1 τ2} → binders-disjoint d1 (d ⟨ τ1 ⇒⦇-⦈⇏ τ2 ⟩) → binders-disjoint d1 d
-    lem-bd-failedcast BDConst = BDConst
+    lem-bd-failedcast BDNum = BDNum
+    lem-bd-failedcast (BDPlus bd bd₁) = BDPlus (lem-bd-failedcast bd) (lem-bd-failedcast bd₁)
     lem-bd-failedcast BDVar = BDVar
     lem-bd-failedcast (BDLam bd (UBFailedCast x₁)) = BDLam (lem-bd-failedcast bd) x₁
     lem-bd-failedcast (BDHole x) = BDHole (lem-bdσ-failedcast x)
@@ -73,7 +78,8 @@ module binders-disjoint-checks where
     lem-bdσ-into-cast (BDσSubst x bd) = BDσSubst (lem-bd-into-cast x) (lem-bdσ-into-cast bd)
 
     lem-bd-into-cast : ∀{d1 d2 τ1 τ2} → binders-disjoint d1 d2 → binders-disjoint d1 (d2 ⟨ τ1 ⇒ τ2 ⟩)
-    lem-bd-into-cast BDConst = BDConst
+    lem-bd-into-cast BDNum = BDNum
+    lem-bd-into-cast (BDPlus bd bd₁) = BDPlus (lem-bd-into-cast bd) (lem-bd-into-cast bd₁)
     lem-bd-into-cast BDVar = BDVar
     lem-bd-into-cast (BDLam bd x₁) = BDLam (lem-bd-into-cast bd) (UBCast x₁)
     lem-bd-into-cast (BDHole x) = BDHole (lem-bdσ-into-cast x)

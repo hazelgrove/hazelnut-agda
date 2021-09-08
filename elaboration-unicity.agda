@@ -11,7 +11,10 @@ module elaboration-unicity where
                             Γ ⊢ e ⇒ τ1 ~> d1 ⊣ Δ1 →
                             Γ ⊢ e ⇒ τ2 ~> d2 ⊣ Δ2 →
                             τ1 == τ2 × d1 == d2 × Δ1 == Δ2
-    elaboration-unicity-synth ESConst ESConst = refl , refl , refl
+    elaboration-unicity-synth ESNum ESNum = refl , refl , refl
+    elaboration-unicity-synth (ESPlus apt1 dis1 x₁ x₂) (ESPlus apt2 dis2 x₃ x₄)
+      with elaboration-unicity-ana x₁ x₃ | elaboration-unicity-ana x₂ x₄
+    ... | refl , refl , refl | refl , refl , refl = refl , refl , refl
     elaboration-unicity-synth (ESVar {Γ = Γ} x₁) (ESVar x₂) = ctxunicity {Γ = Γ} x₁ x₂ , refl , refl
     elaboration-unicity-synth (ESLam apt1 d1) (ESLam apt2 d2)
       with elaboration-unicity-synth d1 d2

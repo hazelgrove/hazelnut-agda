@@ -7,8 +7,10 @@ open import lemmas-gcomplete
 module lemmas-complete where
   -- no term is both complete and indeterminate
   lem-ind-comp : ∀{d} → d dcomplete → d indet → ⊥
+  lem-ind-comp DCNum ()
+  lem-ind-comp (DCPlus comp comp₁) (IPlus1 ind fin) = lem-ind-comp comp ind
+  lem-ind-comp (DCPlus comp comp₁) (IPlus2 fin ind) = lem-ind-comp comp₁ ind
   lem-ind-comp DCVar ()
-  lem-ind-comp DCConst ()
   lem-ind-comp (DCLam comp x₁) ()
   lem-ind-comp (DCAp comp comp₁) (IAp x ind x₁) = lem-ind-comp comp ind
   lem-ind-comp (DCCast comp x x₁) (ICastArr x₂ ind) = lem-ind-comp comp ind
@@ -17,7 +19,7 @@ module lemmas-complete where
 
   -- complete types that are consistent are equal
   complete-consistency : ∀{τ1 τ2} → τ1 ~ τ2 → τ1 tcomplete → τ2 tcomplete → τ1 == τ2
-  complete-consistency TCRefl TCBase comp2 = refl
+  complete-consistency TCRefl TCNum comp2 = refl
   complete-consistency TCRefl (TCArr comp1 comp2) comp3 = refl
   complete-consistency TCHole1 comp1 ()
   complete-consistency TCHole2 () comp2
@@ -30,7 +32,8 @@ module lemmas-complete where
                              (Δ , Γ ⊢ d :: τ) →
                              d dcomplete →
                              τ tcomplete
-  complete-ta gc TAConst comp = TCBase
+  complete-ta gc TANum comp = TCNum
+  complete-ta gc (TAPlus wt wt₁) comp = TCNum
   complete-ta gc (TAVar x₁) DCVar = gc _ _ x₁
   complete-ta gc (TALam a wt) (DCLam comp x₁) = TCArr x₁ (complete-ta (gcomp-extend gc x₁ a ) wt comp)
   complete-ta gc (TAAp wt wt₁) (DCAp comp comp₁) with complete-ta gc wt comp
@@ -46,7 +49,8 @@ module lemmas-complete where
                    e ecomplete →
                    Γ ⊢ e => τ →
                    τ tcomplete
-  comp-synth gc ec SConst = TCBase
+  comp-synth gc ec SNum = TCNum
+  comp-synth gc ec (SPlus x x₁ x₂) = TCNum
   comp-synth gc (ECAsc x ec) (SAsc x₁) = x
   comp-synth gc ec (SVar x) = gc _ _ x
   comp-synth gc (ECAp ec ec₁) (SAp _ wt MAHole x₁) with comp-synth gc ec wt
@@ -56,3 +60,4 @@ module lemmas-complete where
   comp-synth gc () SEHole
   comp-synth gc () (SNEHole _ wt)
   comp-synth gc (ECLam2 ec x₁) (SLam x₂ wt) = TCArr x₁ (comp-synth (gcomp-extend gc x₁ x₂) ec wt)
+  

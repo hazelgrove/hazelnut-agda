@@ -11,7 +11,7 @@ module lemmas-consistency where
 
   -- type consistency isn't transitive
   not-trans : ((t1 t2 t3 : htyp) → t1 ~ t2 → t2 ~ t3 → t1 ~ t3) → ⊥
-  not-trans t with t (b ==> b) ⦇-⦈ b TCHole1 TCHole2
+  not-trans t with t (num ==> num) ⦇-⦈ num TCHole1 TCHole2
   ... | ()
 
   --  every pair of types is either consistent or not consistent
@@ -20,20 +20,11 @@ module lemmas-consistency where
   ~dec _ ⦇-⦈ = Inl TCHole1
   ~dec ⦇-⦈ _ = Inl TCHole2
     -- num cases
-  ~dec b b = Inl TCRefl
-  ~dec b (t2 ==> t3) = Inr ICBaseArr1
+  ~dec num num = Inl TCRefl
+  ~dec num (t2 ==> t3) = Inr λ ()
     -- arrow cases
-  ~dec (t1 ==> t2) b = Inr ICBaseArr2
+  ~dec (t1 ==> t2) num = Inr λ ()
   ~dec (t1 ==> t2) (t3 ==> t4) with ~dec t1 t3 | ~dec t2 t4
   ... | Inl x | Inl y = Inl (TCArr x y)
-  ... | Inl _ | Inr y = Inr (ICArr2 y)
-  ... | Inr x | _     = Inr (ICArr1 x)
-
-  -- no pair of types is both consistent and not consistent
-  ~apart : {t1 t2 : htyp} → (t1 ~̸ t2) → (t1 ~ t2) → ⊥
-  ~apart ICBaseArr1 ()
-  ~apart ICBaseArr2 ()
-  ~apart (ICArr1 x) TCRefl = ~apart x TCRefl
-  ~apart (ICArr1 x) (TCArr y y₁) = ~apart x y
-  ~apart (ICArr2 x) TCRefl = ~apart x TCRefl
-  ~apart (ICArr2 x) (TCArr y y₁) = ~apart x y₁
+  ... | Inl _ | Inr y = Inr λ{ TCRefl → y TCRefl ; (TCArr x₁ x₂) → y x₂}
+  ... | Inr x | _     = Inr λ{ TCRefl → x TCRefl ; (TCArr x₁ x₂) → x x₁}

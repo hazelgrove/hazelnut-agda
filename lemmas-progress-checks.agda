@@ -5,7 +5,7 @@ open import core
 module lemmas-progress-checks where
   -- boxed values don't have an instruction transition
   boxedval-not-trans : ∀{d d'} → d boxedval → d →> d' → ⊥
-  boxedval-not-trans (BVVal VConst) ()
+  boxedval-not-trans (BVVal VNum) ()
   boxedval-not-trans (BVVal VLam) ()
   boxedval-not-trans (BVArrCast x bv) (ITCastID) = x refl
   boxedval-not-trans (BVHoleCast () bv) (ITCastID)
@@ -32,6 +32,9 @@ module lemmas-progress-checks where
   indet-not-trans (ICastGroundHole x x₁) (ITCastFail x₂ () x₄)
   indet-not-trans (ICastHoleGround x x₁ x₂) (ITCastFail x₃ x₄ x₅) = x _ _ refl
   indet-not-trans (IFailedCast x x₁ x₂ x₃) ()
+  indet-not-trans (IPlus1 () x₁) (ITPlus x₂)
+  indet-not-trans (IPlus2 x ()) (ITPlus x₂)
+  
 
   -- finals don't have an instruction transition
   final-not-trans : ∀{d d'} → d final → d →> d' → ⊥
@@ -47,6 +50,8 @@ module lemmas-progress-checks where
   -- the hole-filler must have been final
   final-sub-final : ∀{d ε x} → d final → d == ε ⟦ x ⟧ → x final
   final-sub-final x FHOuter = x
+  final-sub-final (FBoxedVal (BVVal ())) (FHPlus1 eps)
+  final-sub-final (FBoxedVal (BVVal ())) (FHPlus2 eps)
   final-sub-final (FBoxedVal (BVVal ())) (FHAp1 eps)
   final-sub-final (FBoxedVal (BVVal ())) (FHAp2 eps)
   final-sub-final (FBoxedVal (BVVal ())) (FHNEHole eps)
@@ -54,6 +59,10 @@ module lemmas-progress-checks where
   final-sub-final (FBoxedVal (BVVal ())) (FHFailedCast y)
   final-sub-final (FBoxedVal (BVArrCast x₁ x₂)) (FHCast eps) = final-sub-final (FBoxedVal x₂) eps
   final-sub-final (FBoxedVal (BVHoleCast x₁ x₂)) (FHCast eps) = final-sub-final (FBoxedVal x₂) eps
+  final-sub-final (FIndet (IPlus1 x x₁)) (FHPlus1 eps) = final-sub-final (FIndet x) eps
+  final-sub-final (FIndet (IPlus2 x x₁)) (FHPlus1 eps) = final-sub-final x eps
+  final-sub-final (FIndet (IPlus1 x x₁)) (FHPlus2 eps) = final-sub-final x₁ eps
+  final-sub-final (FIndet (IPlus2 x x₁)) (FHPlus2 eps) = final-sub-final (FIndet x₁) eps
   final-sub-final (FIndet (IAp x₁ x₂ x₃)) (FHAp1 eps) = final-sub-final (FIndet x₂) eps
   final-sub-final (FIndet (IAp x₁ x₂ x₃)) (FHAp2 eps) = final-sub-final x₃ eps
   final-sub-final (FIndet (INEHole x₁)) (FHNEHole eps) = final-sub-final x₁ eps
@@ -61,6 +70,6 @@ module lemmas-progress-checks where
   final-sub-final (FIndet (ICastGroundHole x₁ x₂)) (FHCast eps) = final-sub-final (FIndet x₂) eps
   final-sub-final (FIndet (ICastHoleGround x₁ x₂ x₃)) (FHCast eps) = final-sub-final (FIndet x₂) eps
   final-sub-final (FIndet (IFailedCast x₁ x₂ x₃ x₄)) (FHFailedCast y) = final-sub-final x₁ y
-
+  
   final-sub-not-trans : ∀{d d' d'' ε} →  d final → d == ε ⟦ d' ⟧ → d' →> d'' → ⊥
   final-sub-not-trans f sub step = final-not-trans (final-sub-final f sub) step

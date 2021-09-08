@@ -18,7 +18,9 @@ module weakening where
     weaken-ta-Δ1 : ∀{Δ1 Δ2 Γ d τ} → Δ1 ## Δ2
                                   → Δ1 , Γ ⊢ d :: τ
                                   → (Δ1 ∪ Δ2) , Γ ⊢ d :: τ
-    weaken-ta-Δ1 disj TAConst = TAConst
+    --weaken-ta-Δ1 disj TAConst = TAConst
+    weaken-ta-Δ1 disj TANum = TANum
+    weaken-ta-Δ1 disj (TAPlus wt wt₁) = TAPlus (weaken-ta-Δ1 disj wt) (weaken-ta-Δ1 disj wt₁)
     weaken-ta-Δ1 disj (TAVar x₁) = TAVar x₁
     weaken-ta-Δ1 disj (TALam x₁ wt) = TALam x₁ (weaken-ta-Δ1 disj wt)
     weaken-ta-Δ1 disj (TAAp wt wt₁) = TAAp (weaken-ta-Δ1 disj wt) (weaken-ta-Δ1 disj wt₁)
@@ -44,7 +46,8 @@ module weakening where
     weaken-synth : ∀{ x Γ e τ τ'} → freshh x e
                                   → Γ ⊢ e => τ
                                   → (Γ ,, (x , τ')) ⊢ e => τ
-    weaken-synth FRHConst SConst = SConst
+    weaken-synth FRHNum SNum = SNum
+    weaken-synth (FRHPlus frsh frsh₁) (SPlus dsjt x x₁) = SPlus dsjt (weaken-ana frsh x) (weaken-ana frsh₁ x₁)
     weaken-synth (FRHAsc frsh) (SAsc x₁) = SAsc (weaken-ana frsh x₁)
     weaken-synth {Γ = Γ} (FRHVar {x = x} x₁) (SVar {x = y} x₂) = SVar (x∈∪l Γ (■(x , _)) y _  x₂)
     weaken-synth {Γ = Γ} (FRHLam2 x₁ frsh) (SLam x₂ wt) =
@@ -77,7 +80,8 @@ module weakening where
                 fresh x d →
                 Δ , Γ ⊢ d :: τ →
                 Δ , Γ ,, (x , τ') ⊢ d :: τ
-    weaken-ta _ TAConst = TAConst
+    weaken-ta FNum TANum = TANum
+    weaken-ta (FPlus x₁ x₂) (TAPlus x x₃) = TAPlus (weaken-ta x₁ x) (weaken-ta x₂ x₃)
     weaken-ta {x} {Γ} {_} {_} {τ} {τ'} (FVar x₂) (TAVar x₃) = TAVar (x∈∪l Γ (■ (x , τ')) _ _ x₃)
     weaken-ta {x = x} frsh (TALam {x = y} x₂ wt) with natEQ x y
     weaken-ta (FLam x₁ x₂) (TALam x₃ wt) | Inl refl = abort (x₁ refl)

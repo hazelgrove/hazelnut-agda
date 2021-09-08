@@ -22,6 +22,8 @@ module preservation where
   wt-different-fill FHOuter D1 D2 D3 FHOuter
     with type-assignment-unicity D1 D2
   ... | refl = D3
+  wt-different-fill (FHPlus1 eps1) (TAPlus D1 D2) D3 D4 (FHPlus1 eps2) = TAPlus (wt-different-fill eps1 D1 D3 D4 eps2) D2
+  wt-different-fill (FHPlus2 eps1) (TAPlus D1 D2) D3 D4 (FHPlus2 eps2) = TAPlus D1 (wt-different-fill eps1 D2 D3 D4 eps2)
   wt-different-fill (FHAp1 eps) (TAAp D1 D2) D3 D4 (FHAp1 D5) = TAAp (wt-different-fill eps D1 D3 D4 D5) D2
   wt-different-fill (FHAp2 eps) (TAAp D1 D2) D3 D4 (FHAp2 D5) = TAAp D1 (wt-different-fill eps D2 D3 D4 D5)
   wt-different-fill (FHNEHole eps) (TANEHole x D1 x₁) D2 D3 (FHNEHole D4) = TANEHole x (wt-different-fill eps D1 D2 D3 D4) x₁
@@ -34,7 +36,10 @@ module preservation where
              Δ , Γ ⊢ d :: τ →
              d == ε ⟦ d' ⟧ →
              Σ[ τ' ∈ htyp ] (Δ , Γ ⊢ d' :: τ')
-  wt-filling TAConst FHOuter = _ , TAConst
+  wt-filling TANum FHOuter = _ , TANum
+  wt-filling (TAPlus ta ta₁) FHOuter = num , TAPlus ta ta₁
+  wt-filling (TAPlus ta ta₁) (FHPlus1 eps) = wt-filling ta eps
+  wt-filling (TAPlus ta ta₁) (FHPlus2 eps) = wt-filling ta₁ eps
   wt-filling (TAVar x₁) FHOuter = _ , TAVar x₁
   wt-filling (TALam f ta) FHOuter = _ , TALam f ta
 
@@ -56,7 +61,7 @@ module preservation where
             Δ , Γ ⊢ d :: τ →
             d →> d' →
             Δ , Γ ⊢ d' :: τ
-  preserve-trans bd TAConst ()
+  preserve-trans bd TANum ()
   preserve-trans bd (TAVar x₁) ()
   preserve-trans bd (TALam _ ta) ()
   preserve-trans (BUAp (BULam bd x₁) bd₁ (BDLam x₂ x₃)) (TAAp (TALam apt ta) ta₁) ITLam = lem-subst apt x₂ bd₁ ta ta₁

@@ -7,12 +7,28 @@ open import lemmas-matching
 open import disjointness
 
 module elaborability where
+  -- bad-Γ : tctx
+  -- bad-Γ Z = Some ⦇-⦈
+  -- bad-Γ (1+ n) = None
+    
+  -- bad : Σ[ Γ ∈ tctx ] Σ[ e ∈ hexp ] Σ[ τ ∈ htyp ]
+  --       ((Γ ⊢ e => τ → Σ[ d ∈ ihexp ] Σ[ Δ ∈ hctx ] (Γ ⊢ e ⇒ τ ~> d ⊣ Δ)) → ⊥)
+  -- bad = bad-Γ , (X Z ·+ N Z) , num , no-good
+  --   where
+  --     no-good : (bad-Γ ⊢ X Z ·+ N Z => num →
+  --               Σ[ d ∈ ihexp ] Σ[ Δ ∈ hctx ] (bad-Γ ⊢ X Z ·+ N Z ⇒ num ~> d ⊣ Δ)) → ⊥
+  --     no-good b with b (SPlus HDVar (ASubsume (SVar refl) TCHole1) (ASubsume SNum TCRefl))
+  --     ... | _ , _ , ESPlus disj (EASubsume _ _ (ESVar ()) _) _
+  
   mutual
     elaborability-synth : {Γ : tctx} {e : hexp} {τ : htyp} →
                           Γ ⊢ e => τ →
                           Σ[ d ∈ ihexp ] Σ[ Δ ∈ hctx ]
                             (Γ ⊢ e ⇒ τ ~> d ⊣ Δ)
-    elaborability-synth SConst = _ , _ , ESConst
+    elaborability-synth SNum = _ , _ , ESNum
+    elaborability-synth (SPlus dis wt1 wt2)
+      with elaborability-ana wt1 | elaborability-ana wt2
+    ... | _ , _ , _ , D1 | _ , _ , _ , D2 = _ , _ , ESPlus (elab-ana-disjoint dis D1 D2) dis D1 D2
     elaborability-synth (SAsc {τ = τ} wt)
       with elaborability-ana wt
     ... | _ , _ , τ' , D  = _ , _ , ESAsc D
@@ -30,12 +46,13 @@ module elaborability where
 
     elaborability-ana : {Γ : tctx} {e : hexp} {τ : htyp} →
                          Γ ⊢ e <= τ →
-                          Σ[ d ∈ ihexp ] Σ[ Δ ∈ hctx ] Σ[ τ' ∈ htyp ]
+                         Σ[ d ∈ ihexp ] Σ[ Δ ∈ hctx ] Σ[ τ' ∈ htyp ]
                             (Γ ⊢ e ⇐ τ ~> d :: τ' ⊣ Δ)
     elaborability-ana {e = e} (ASubsume D x₁)
       with elaborability-synth D
     -- these cases just pass through, but we need to pattern match so we can prove things aren't holes
-    elaborability-ana {e = c} (ASubsume D x₁)                    | _ , _ , D' = _ , _ , _ , EASubsume (λ _ ()) (λ _ _ ()) D' x₁
+    elaborability-ana {e = N n} (ASubsume D x₁)                  | _ , _ , D' = _ , _ , _ , EASubsume (λ _ ()) (λ _ _ ()) D' x₁
+    elaborability-ana {e = e1 ·+ e2} (ASubsume D x₁)             | _ , _ , D' = _ , _ , _ , EASubsume (λ _ ()) (λ _ _ ()) D' x₁
     elaborability-ana {e = e ·: x} (ASubsume D x₁)               | _ , _ , D' = _ , _ , _ , EASubsume (λ _ ()) (λ _ _ ()) D' x₁
     elaborability-ana {e = X x} (ASubsume D x₁)                  | _ , _ , D' = _ , _ , _ , EASubsume (λ _ ()) (λ _ _ ()) D' x₁
     elaborability-ana {e = ·λ x e} (ASubsume D x₁)               | _ , _ , D' = _ , _ , _ , EASubsume (λ _ ()) (λ _ _ ()) D' x₁

@@ -15,7 +15,8 @@ module cast-inert where
                   d dcomplete →
                   Δ , Γ ⊢ d :: τ →
                   cast-id d
-  cast-inert dc TAConst = CIConst
+  cast-inert dc TANum = CINum
+  cast-inert (DCPlus dc dc₁) (TAPlus wt wt₁) = CIPlus (cast-inert dc wt) (cast-inert dc₁ wt₁)
   cast-inert dc (TAVar x₁) = CIVar
   cast-inert (DCLam dc x₁) (TALam x₂ wt) = CILam (cast-inert dc wt)
   cast-inert (DCAp dc dc₁) (TAAp wt wt₁) = CIAp (cast-inert dc wt) (cast-inert dc₁ wt₁)
@@ -39,7 +40,8 @@ module cast-inert where
   -- removed. note that this is a syntactic rewrite and it goes under
   -- binders.
   data no-id-casts : ihexp → ihexp → Set where
-    NICConst  : no-id-casts c c
+    NICNum    : ∀{n} → no-id-casts (N n) (N n)
+    NICPlus   : ∀{d1 d2 d1' d2'} → no-id-casts d1 d1' → no-id-casts d2 d2' → no-id-casts (d1 ·+ d2) (d1' ·+ d2')
     NICVar    : ∀{x} → no-id-casts (X x) (X x)
     NICLam    : ∀{x τ d d'} → no-id-casts d d' → no-id-casts (·λ x [ τ ] d) (·λ x [ τ ] d')
     NICHole   : ∀{u} → no-id-casts (⦇-⦈⟨ u ⟩) (⦇-⦈⟨ u ⟩)
@@ -52,7 +54,8 @@ module cast-inert where
   no-id-casts-type : ∀{Γ Δ d τ d' } → Δ , Γ ⊢ d :: τ →
                                       no-id-casts d d' →
                                       Δ , Γ ⊢ d' :: τ
-  no-id-casts-type TAConst NICConst = TAConst
+  no-id-casts-type TANum NICNum = TANum
+  no-id-casts-type (TAPlus wt wt₁) (NICPlus nic nic₁) = TAPlus (no-id-casts-type wt nic) (no-id-casts-type wt₁ nic₁)
   no-id-casts-type (TAVar x₁) NICVar = TAVar x₁
   no-id-casts-type (TALam x₁ wt) (NICLam nic) = TALam x₁ (no-id-casts-type wt nic)
   no-id-casts-type (TAAp wt wt₁) (NICAp nic nic₁) = TAAp (no-id-casts-type wt nic) (no-id-casts-type wt₁ nic₁)

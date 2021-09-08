@@ -28,3 +28,7 @@ module Nat where
   natEQp x y with natEQ x y
   natEQp x .x | Inl refl = ⊥
   natEQp x y | Inr x₁ = ⊤
+
+  _nat+_ : Nat → Nat → Nat
+  Z nat+ y = y
+  1+ x nat+ y = 1+ (x nat+ y)

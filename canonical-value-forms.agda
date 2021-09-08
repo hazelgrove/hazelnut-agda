@@ -4,17 +4,17 @@ open import contexts
 open import core
 
 module canonical-value-forms where
-  canonical-value-forms-b : ∀{Δ d} →
-                            Δ , ∅ ⊢ d :: b →
-                            d val →
-                            d == c
-  canonical-value-forms-b TAConst VConst = refl
-  canonical-value-forms-b (TAVar x₁) ()
-  canonical-value-forms-b (TAAp wt wt₁) ()
-  canonical-value-forms-b (TAEHole x x₁) ()
-  canonical-value-forms-b (TANEHole x wt x₁) ()
-  canonical-value-forms-b (TACast wt x) ()
-  canonical-value-forms-b (TAFailedCast wt x x₁ x₂) ()
+  canonical-value-forms-num : ∀{Δ d} →
+                              Δ , ∅ ⊢ d :: num →
+                              d val →
+                              Σ[ n ∈ Nat ] (d == N n)
+  canonical-value-forms-num TANum VNum = _ , refl
+  canonical-value-forms-num (TAVar x₁) ()
+  canonical-value-forms-num (TAAp wt wt₁) ()
+  canonical-value-forms-num (TAEHole x x₁) ()
+  canonical-value-forms-num (TANEHole x wt x₁) ()
+  canonical-value-forms-num (TACast wt x) ()
+  canonical-value-forms-num (TAFailedCast wt x x₁ x₂) ()
 
   canonical-value-forms-arr : ∀{Δ d τ1 τ2} →
                               Δ , ∅ ⊢ d :: (τ1 ==> τ2) →
@@ -38,10 +38,10 @@ module canonical-value-forms where
   canonical-value-forms-coverage1 : ∀{Δ d τ} →
                                    Δ , ∅ ⊢ d :: τ →
                                    d val →
-                                   τ ≠ b →
+                                   τ ≠ num →
                                    ((τ1 : htyp) (τ2 : htyp) → τ ≠ (τ1 ==> τ2)) →
                                    ⊥
-  canonical-value-forms-coverage1 TAConst VConst = λ z _ → z refl
+  canonical-value-forms-coverage1 TANum VNum = λ z _ → z refl
   canonical-value-forms-coverage1 (TAVar x₁) ()
   canonical-value-forms-coverage1 (TALam _ wt) VLam = λ _ z → z _ _ refl
   canonical-value-forms-coverage1 (TAAp wt wt₁) ()

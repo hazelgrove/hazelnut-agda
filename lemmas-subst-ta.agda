@@ -25,7 +25,7 @@ module lemmas-subst-ta where
                                       → unbound-in y d2
                                       → Γ y == None
                                       → fresh y d2
-    binders-fresh TAConst BUHole UBConst apt = FConst
+    binders-fresh TANum BUHole UBNum apt = FNum
     binders-fresh {y = y} (TAVar {x = x} x₁)  BUVar UBVar apt with natEQ y x
     binders-fresh (TAVar x₂) BUVar UBVar apt | Inl refl = abort (somenotnone (! x₂ · apt))
     binders-fresh (TAVar x₂) BUVar UBVar apt | Inr x₁ = FVar x₁
@@ -46,7 +46,8 @@ module lemmas-subst-ta where
                   Δ , Γ ,, (x , τ1) ⊢ d1 :: τ →
                   Δ , Γ ⊢ d2 :: τ1 →
                   Δ , Γ ⊢ [ d2 / x ] d1 :: τ
-  lem-subst apt bd bu2  TAConst wt2 = TAConst
+  lem-subst apt bd bu2 (TANum) wt = TANum
+  lem-subst apt (BDPlus bd bd₁) bu2 (TAPlus wt1 wt2) wt3 = TAPlus (lem-subst apt bd bu2 wt1 wt3) (lem-subst apt bd₁ bu2 wt2 wt3)
   lem-subst {x = x} apt bd bu2  (TAVar {x = x'} x₂) wt2 with natEQ x' x
   lem-subst {Γ = Γ} apt bd bu2 (TAVar x₃) wt2 | Inl refl with lem-apart-union-eq {Γ = Γ} apt x₃
   lem-subst apt bd bu2  (TAVar x₃) wt2 | Inl refl | refl = wt2

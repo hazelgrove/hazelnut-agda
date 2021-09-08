@@ -20,7 +20,7 @@ open import lemmas-progress-checks
 module progress-checks where
   -- boxed values are not indeterminates
   boxedval-not-indet : ∀{d} → d boxedval → d indet → ⊥
-  boxedval-not-indet (BVVal VConst) ()
+  boxedval-not-indet (BVVal VNum) ()
   boxedval-not-indet (BVVal VLam) ()
   boxedval-not-indet (BVArrCast x bv) (ICastArr x₁ ind) = boxedval-not-indet bv ind
   boxedval-not-indet (BVHoleCast x bv) (ICastGroundHole x₁ ind) = boxedval-not-indet bv ind
@@ -28,7 +28,7 @@ module progress-checks where
 
   -- boxed values don't step
   boxedval-not-step : ∀{d} → d boxedval → (Σ[ d' ∈ ihexp ] (d ↦ d')) → ⊥
-  boxedval-not-step (BVVal VConst) (d' , Step FHOuter () x₃)
+  boxedval-not-step (BVVal VNum) (d' , Step FHOuter () x₃)
   boxedval-not-step (BVVal VLam) (d' , Step FHOuter () x₃)
   boxedval-not-step (BVArrCast x bv) (d0' , Step FHOuter (ITCastID) FHOuter) = x refl
   boxedval-not-step (BVArrCast x bv) (_ , Step (FHCast x₁) x₂ (FHCast x₃)) = boxedval-not-step bv (_ , Step x₁ x₂ x₃)
@@ -65,6 +65,12 @@ module progress-checks where
     indet-not-step (ICastHoleGround x x₁ x₂) (_ , Step FHOuter (ITCastFail x₃ x₄ x₅) FHOuter) = x _ _ refl
     indet-not-step (IFailedCast x x₁ x₂ x₃) (d' , Step FHOuter () FHOuter)
     indet-not-step (IFailedCast x x₁ x₂ x₃) (_ , Step (FHFailedCast x₄) x₅ (FHFailedCast x₆)) = final-not-step x (_ , Step x₄ x₅ x₆)
+    indet-not-step (IPlus1 () x₄) (_ , Step FHOuter (ITPlus x₁) FHOuter)
+    indet-not-step (IPlus1 x x₄) (_ , Step (FHPlus1 x₁) x₂ (FHPlus1 x₃)) = indet-not-step x (_ , Step x₁ x₂ x₃)
+    indet-not-step (IPlus1 x x₄) (.(_ ·+ _) , Step (FHPlus2 x₁) x₂ (FHPlus2 x₃)) = final-not-step x₄ (_ , Step x₁ x₂ x₃)
+    indet-not-step (IPlus2 x ()) (_ , Step FHOuter (ITPlus x₁) FHOuter)
+    indet-not-step (IPlus2 x x₄) (_ , Step (FHPlus1 x₁) x₂ (FHPlus1 x₃)) = final-not-step x (_ , Step x₁ x₂ x₃)
+    indet-not-step (IPlus2 x x₄) (_ , Step (FHPlus2 x₁) x₂ (FHPlus2 x₃)) = indet-not-step x₄ (_ , Step x₁ x₂ x₃)
 
     -- final expressions don't step
     final-not-step : ∀{d} → d final → Σ[ d' ∈ ihexp ] (d ↦ d') → ⊥

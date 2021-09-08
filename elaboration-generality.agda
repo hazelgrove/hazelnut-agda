@@ -8,7 +8,8 @@ module elaboration-generality where
     elaboration-generality-synth : {Γ : tctx} {e : hexp} {τ : htyp} {d : ihexp} {Δ : hctx} →
                             Γ ⊢ e ⇒ τ ~> d ⊣ Δ →
                             Γ ⊢ e => τ
-    elaboration-generality-synth ESConst = SConst
+    elaboration-generality-synth ESNum = SNum
+    elaboration-generality-synth (ESPlus apt dis x₁ x₂) = SPlus dis (elaboration-generality-ana x₁) (elaboration-generality-ana x₂)
     elaboration-generality-synth (ESVar x₁) = SVar x₁
     elaboration-generality-synth (ESLam apt ex) with elaboration-generality-synth ex
     ... | ih = SLam apt ih

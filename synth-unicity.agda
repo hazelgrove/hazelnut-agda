@@ -21,6 +21,7 @@ module synth-unicity where
   ... | refl = refl
   synthunicity SEHole SEHole = refl
   synthunicity (SNEHole _ _) (SNEHole _ _) = refl
-  synthunicity SConst SConst = refl
+  synthunicity SNum SNum = refl
+  synthunicity (SPlus _ _ _) (SPlus _ _ _) = refl
   synthunicity (SLam _ D1) (SLam _ D2) with synthunicity D1 D2
   synthunicity (SLam x₁ D1) (SLam x₂ D2) | refl = refl

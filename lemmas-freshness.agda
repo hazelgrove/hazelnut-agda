@@ -12,7 +12,10 @@ module lemmas-freshness where
                          freshh x e →
                          Γ ⊢ e ⇒ τ ~> d ⊣ Δ →
                          fresh x d
-    fresh-elab-synth1 _ FRHConst ESConst = FConst
+    fresh-elab-synth1 apt FHNum ESNum = FNum
+    fresh-elab-synth1 apt (FRHPlus x x₄) (ESPlus gapt x₁ x₂ x₃) =
+                          FPlus (FCast (fresh-elab-ana1 apt x x₂))
+                                (FCast (fresh-elab-ana1 apt x₄ x₃))
     fresh-elab-synth1 apt (FRHAsc frsh) (ESAsc x₁) = FCast (fresh-elab-ana1 apt frsh x₁)
     fresh-elab-synth1 _ (FRHVar x₂) (ESVar x₃) = FVar x₂
     fresh-elab-synth1 {Γ = Γ} apt (FRHLam2 x₂ frsh) (ESLam x₃ exp) = FLam x₂ (fresh-elab-synth1 (apart-extend1 Γ x₂ apt) frsh exp)
@@ -38,7 +41,9 @@ module lemmas-freshness where
                          fresh x d →
                          Γ ⊢ e ⇒ τ ~> d ⊣ Δ →
                          freshh x e
-    fresh-elab-synth2 FConst ESConst = FRHConst
+    fresh-elab-synth2 FNum ESNum = FRHNum
+    fresh-elab-synth2 (FPlus (FCast x) (FCast x₄)) (ESPlus apt x₁ x₂ x₃) =
+      FRHPlus (fresh-elab-ana2 x x₂) (fresh-elab-ana2 x₄ x₃)
     fresh-elab-synth2 (FVar x₂) (ESVar x₃) = FRHVar x₂
     fresh-elab-synth2 (FLam x₂ frsh) (ESLam x₃ exp) = FRHLam2 x₂ (fresh-elab-synth2 frsh exp)
     fresh-elab-synth2 (FHole x₁) ESEHole = FRHEHole

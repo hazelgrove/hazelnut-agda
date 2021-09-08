@@ -11,7 +11,10 @@ module typed-elaboration where
     typed-elaboration-synth : {Γ : tctx} {e : hexp} {τ : htyp} {d : ihexp} {Δ : hctx} →
                             Γ ⊢ e ⇒ τ ~> d ⊣ Δ →
                             Δ , Γ ⊢ d :: τ
-    typed-elaboration-synth ESConst = TAConst
+    typed-elaboration-synth ESNum = TANum
+    typed-elaboration-synth (ESPlus apt dis x₁ x₂)
+      with typed-elaboration-ana x₁ | typed-elaboration-ana x₂
+    ... | con1 , ih1 | con2 , ih2 = TAPlus (TACast (weaken-ta-Δ1 apt ih1) con1) (TACast (weaken-ta-Δ2 apt ih2) con2)
     typed-elaboration-synth (ESVar x₁) = TAVar x₁
     typed-elaboration-synth (ESLam x₁ ex) = TALam x₁ (typed-elaboration-synth ex)
     typed-elaboration-synth (ESAp {Δ1 = Δ1} _ d x₁ x₂ x₃ x₄)
@@ -19,7 +22,7 @@ module typed-elaboration where
     ... | con1 , ih1 | con2 , ih2  = TAAp (TACast (weaken-ta-Δ1 d ih1) con1) (TACast (weaken-ta-Δ2 {Δ1 = Δ1} d ih2) con2)
     typed-elaboration-synth (ESEHole {Γ = Γ} {u = u})  = TAEHole (ctx-top ∅ u (Γ , ⦇-⦈) refl)(STAId (λ x τ z → z))
     typed-elaboration-synth (ESNEHole {Γ = Γ} {τ = τ} {u = u} {Δ = Δ} (d1 , d2) ex)
-      with typed-elaboration-synth ex
+                            with typed-elaboration-synth ex
     ... | ih1 = TANEHole {Δ = Δ ,, (u , Γ , ⦇-⦈)} (ctx-top Δ u (Γ , ⦇-⦈) (d2 u (lem-domsingle _ _))) (weaken-ta-Δ1 (d1 , d2) ih1)(STAId (λ x τ₁ z → z))
     typed-elaboration-synth (ESAsc x)
       with typed-elaboration-ana x

@@ -9,7 +9,8 @@ module type-assignment-unicity where
                               Δ , Γ ⊢ d :: τ →
                               Δ , Γ ⊢ d :: τ' →
                               τ == τ'
-  type-assignment-unicity TAConst TAConst = refl
+  type-assignment-unicity TANum TANum = refl
+  type-assignment-unicity (TAPlus x x₁) (TAPlus x₂ x₃) = refl
   type-assignment-unicity {Γ = Γ} (TAVar x₁) (TAVar x₂) = ctxunicity {Γ = Γ} x₁ x₂
   type-assignment-unicity (TALam _ d1) (TALam _ d2)
     with type-assignment-unicity d1 d2

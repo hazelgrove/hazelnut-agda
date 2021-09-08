@@ -5,8 +5,8 @@ open import contexts
 module core where
   -- types
   data htyp : Set where
-    b     : htyp
-    ⦇-⦈    : htyp
+    num   : htyp
+    ⦇-⦈   : htyp
     _==>_ : htyp → htyp → htyp
 
   -- arrow type constructors bind very tightly
@@ -14,14 +14,15 @@ module core where
 
   -- external expressions
   data hexp : Set where
-    c       : hexp
+    N       : Nat → hexp
+    _·+_    : hexp → hexp → hexp
     _·:_    : hexp → htyp → hexp
     X       : Nat → hexp
     ·λ      : Nat → hexp → hexp
     ·λ_[_]_ : Nat → htyp → hexp → hexp
-    ⦇-⦈[_]   : Nat → hexp
-    ⦇⌜_⌟⦈[_]  : hexp → Nat → hexp
     _∘_     : hexp → hexp → hexp
+    ⦇-⦈[_]   : Nat → hexp
+    ⦇⌜_⌟⦈[_] : hexp → Nat → hexp
 
   -- the type of type contexts, i.e. Γs in the judegments below
   tctx : Set
@@ -35,13 +36,14 @@ module core where
 
     -- internal expressions
     data ihexp : Set where
-      c         : ihexp
+      N         : Nat → ihexp
+      _·+_      : ihexp → ihexp → ihexp
       X         : Nat → ihexp
       ·λ_[_]_   : Nat → htyp → ihexp → ihexp
-      ⦇-⦈⟨_⟩     : (Nat × env) → ihexp
-      ⦇⌜_⌟⦈⟨_⟩    : ihexp → (Nat × env) → ihexp
       _∘_       : ihexp → ihexp → ihexp
-      _⟨_⇒_⟩    : ihexp → htyp → htyp → ihexp
+      ⦇-⦈⟨_⟩     : (Nat × env) → ihexp
+      ⦇⌜_⌟⦈⟨_⟩   : ihexp → (Nat × env) → ihexp
+      _⟨_⇒_⟩     : ihexp → htyp → htyp → ihexp
       _⟨_⇒⦇-⦈⇏_⟩ : ihexp → htyp → htyp → ihexp
 
   -- convenient notation for chaining together two agreeable casts
@@ -54,20 +56,13 @@ module core where
     TCHole1 : {τ : htyp} → τ ~ ⦇-⦈
     TCHole2 : {τ : htyp} → ⦇-⦈ ~ τ
     TCArr   : {τ1 τ2 τ1' τ2' : htyp} →
-               τ1 ~ τ1' →
-               τ2 ~ τ2' →
-               τ1 ==> τ2 ~ τ1' ==> τ2'
+              τ1 ~ τ1' →
+              τ2 ~ τ2' →
+              τ1 ==> τ2 ~ τ1' ==> τ2'
 
   -- type inconsistency
-  data _~̸_ : (τ1 τ2 : htyp) → Set where
-    ICBaseArr1 : {τ1 τ2 : htyp} → b ~̸ τ1 ==> τ2
-    ICBaseArr2 : {τ1 τ2 : htyp} → τ1 ==> τ2 ~̸ b
-    ICArr1 : {τ1 τ2 τ3 τ4 : htyp} →
-               τ1 ~̸ τ3 →
-               τ1 ==> τ2 ~̸ τ3 ==> τ4
-    ICArr2 : {τ1 τ2 τ3 τ4 : htyp} →
-               τ2 ~̸ τ4 →
-               τ1 ==> τ2 ~̸ τ3 ==> τ4
+  _~̸_ : htyp → htyp → Set
+  t1 ~̸ t2 = (t1 ~ t2) → ⊥
 
   --- matching for arrows
   data _▸arr_ : htyp → htyp → Set where
@@ -84,17 +79,25 @@ module core where
 
   -- the hole name u does not appear in the term e
   data hole-name-new : (e : hexp) (u : Nat) → Set where
-    HNConst : ∀{u} → hole-name-new c u
-    HNAsc : ∀{e τ u} →
-            hole-name-new e u →
-            hole-name-new (e ·: τ) u
-    HNVar : ∀{x u} → hole-name-new (X x) u
+    HNNum  : ∀{n u} → hole-name-new (N n) u
+    HNPlus : ∀{e1 e2 u} →
+             hole-name-new e1 u →
+             hole-name-new e2 u →
+             hole-name-new (e1 ·+ e2) u
+    HNAsc  : ∀{e τ u} →
+             hole-name-new e u →
+             hole-name-new (e ·: τ) u
+    HNVar  : ∀{x u} → hole-name-new (X x) u
     HNLam1 : ∀{x e u} →
              hole-name-new e u →
              hole-name-new (·λ x e) u
     HNLam2 : ∀{x e u τ} →
              hole-name-new e u →
              hole-name-new (·λ x [ τ ] e) u
+    HNAp   : ∀{e1 e2 u} →
+             hole-name-new e1 u →
+             hole-name-new e2 u →
+             hole-name-new (e1 ∘ e2) u
     HNHole : ∀{u u'} →
              u' ≠ u →
              hole-name-new (⦇-⦈[ u' ]) u
@@ -102,48 +105,68 @@ module core where
                u' ≠ u →
                hole-name-new e u →
                hole-name-new (⦇⌜ e ⌟⦈[ u' ]) u
-    HNAp : ∀{ u e1 e2 } →
-           hole-name-new e1 u →
-           hole-name-new e2 u →
-           hole-name-new (e1 ∘ e2) u
 
   -- two terms that do not share any hole names
   data holes-disjoint : (e1 : hexp) → (e2 : hexp) → Set where
-    HDConst : ∀{e} → holes-disjoint c e
-    HDAsc : ∀{e1 e2 τ} → holes-disjoint e1 e2 → holes-disjoint (e1 ·: τ) e2
-    HDVar : ∀{x e} → holes-disjoint (X x) e
-    HDLam1 : ∀{x e1 e2} → holes-disjoint e1 e2 → holes-disjoint (·λ x e1) e2
-    HDLam2 : ∀{x e1 e2 τ} → holes-disjoint e1 e2 → holes-disjoint (·λ x [ τ ] e1) e2
-    HDHole : ∀{u e2} → hole-name-new e2 u → holes-disjoint (⦇-⦈[ u ]) e2
-    HDNEHole : ∀{u e1 e2} → hole-name-new e2 u → holes-disjoint e1 e2 → holes-disjoint (⦇⌜ e1 ⌟⦈[ u ]) e2
-    HDAp :  ∀{e1 e2 e3} → holes-disjoint e1 e3 → holes-disjoint e2 e3 → holes-disjoint (e1 ∘ e2) e3
+    HDNum  : ∀{n e} → holes-disjoint (N n) e
+    HDPlus : ∀{e1 e2 e3} →
+             holes-disjoint e1 e3 →
+             holes-disjoint e2 e3 →
+             holes-disjoint (e1 ·+ e2) e3
+    HDAsc  : ∀{e1 e2 τ} →
+             holes-disjoint e1 e2 →
+             holes-disjoint (e1 ·: τ) e2
+    HDVar  : ∀{x e} → holes-disjoint (X x) e
+    HDLam1 : ∀{x e1 e2} →
+             holes-disjoint e1 e2 →
+             holes-disjoint (·λ x e1) e2
+    HDLam2 : ∀{x e1 e2 τ} →
+             holes-disjoint e1 e2 →
+             holes-disjoint (·λ x [ τ ] e1) e2
+    HDAp   : ∀{e1 e2 e3} →
+             holes-disjoint e1 e3 →
+             holes-disjoint e2 e3 →
+             holes-disjoint (e1 ∘ e2) e3
+    HDHole : ∀{u e2} →
+             hole-name-new e2 u →
+             holes-disjoint (⦇-⦈[ u ]) e2
+    HDNEHole : ∀{u e1 e2} →
+               hole-name-new e2 u →
+               holes-disjoint e1 e2 →
+               holes-disjoint (⦇⌜ e1 ⌟⦈[ u ]) e2
 
   -- bidirectional type checking judgements for hexp
   mutual
     -- synthesis
     data _⊢_=>_ : (Γ : tctx) (e : hexp) (τ : htyp) → Set where
-      SConst  : {Γ : tctx} → Γ ⊢ c => b
+      SNum    : {Γ : tctx} {n : Nat} →
+                Γ ⊢ N n => num
+      SPlus   : {Γ : tctx} {e1 e2 : hexp}  →
+                holes-disjoint e1 e2 →
+                Γ ⊢ e1 <= num →
+                Γ ⊢ e2 <= num →
+                Γ ⊢ (e1 ·+ e2) => num
       SAsc    : {Γ : tctx} {e : hexp} {τ : htyp} →
-                 Γ ⊢ e <= τ →
-                 Γ ⊢ (e ·: τ) => τ
+                Γ ⊢ e <= τ →
+                Γ ⊢ (e ·: τ) => τ
       SVar    : {Γ : tctx} {τ : htyp} {x : Nat} →
-                 (x , τ) ∈ Γ →
-                 Γ ⊢ X x => τ
+                (x , τ) ∈ Γ →
+                Γ ⊢ X x => τ
+      SLam    : {Γ : tctx} {e : hexp} {τ1 τ2 : htyp} {x : Nat} →
+                x # Γ →
+                (Γ ,, (x , τ1)) ⊢ e => τ2 →
+                Γ ⊢ ·λ x [ τ1 ] e => τ1 ==> τ2
       SAp     : {Γ : tctx} {e1 e2 : hexp} {τ τ1 τ2 : htyp} →
-                 holes-disjoint e1 e2 →
-                 Γ ⊢ e1 => τ1 →
-                 τ1 ▸arr τ2 ==> τ →
-                 Γ ⊢ e2 <= τ2 →
-                 Γ ⊢ (e1 ∘ e2) => τ
+                holes-disjoint e1 e2 →
+                Γ ⊢ e1 => τ1 →
+                τ1 ▸arr τ2 ==> τ →
+                Γ ⊢ e2 <= τ2 →
+                Γ ⊢ (e1 ∘ e2) => τ
       SEHole  : {Γ : tctx} {u : Nat} → Γ ⊢ ⦇-⦈[ u ] => ⦇-⦈
       SNEHole : {Γ : tctx} {e : hexp} {τ : htyp} {u : Nat} →
-                 hole-name-new e u →
-                 Γ ⊢ e => τ →
-                 Γ ⊢ ⦇⌜ e ⌟⦈[ u ] => ⦇-⦈
-      SLam    : {Γ : tctx} {e : hexp} {τ1 τ2 : htyp} {x : Nat} →
-                 x # Γ →
-                 (Γ ,, (x , τ1)) ⊢ e => τ2 →
-                 Γ ⊢ ·λ x [ τ1 ] e => τ1 ==> τ2
+                hole-name-new e u →
+                Γ ⊢ e => τ →
+                Γ ⊢ ⦇⌜ e ⌟⦈[ u ] => ⦇-⦈
 
     -- analysis
     data _⊢_<=_ : (Γ : htyp ctx) (e : hexp) (τ : htyp) → Set where
@@ -151,7 +174,7 @@ module core where
                  Γ ⊢ e => τ' →
                  τ ~ τ' →
                  Γ ⊢ e <= τ
-      ALam : {Γ : tctx} {e : hexp} {τ τ1 τ2 : htyp} {x : Nat} →
+      ALam     : {Γ : tctx} {e : hexp} {τ τ1 τ2 : htyp} {x : Nat} →
                  x # Γ →
                  τ ▸arr τ1 ==> τ2 →
                  (Γ ,, (x , τ1)) ⊢ e <= τ2 →
@@ -159,24 +182,26 @@ module core where
 
   -- those types without holes
   data _tcomplete : htyp → Set where
-    TCBase : b tcomplete
+    TCNum : num tcomplete
     TCArr : ∀{τ1 τ2} → τ1 tcomplete → τ2 tcomplete → (τ1 ==> τ2) tcomplete
 
   -- those external expressions without holes
   data _ecomplete : hexp → Set where
-    ECConst : c ecomplete
-    ECAsc : ∀{τ e} → τ tcomplete → e ecomplete → (e ·: τ) ecomplete
-    ECVar : ∀{x} → (X x) ecomplete
+    ECNum  : ∀{n} → (N n) ecomplete
+    ECPlus : ∀{e1 e2} → e1 ecomplete → e2 ecomplete → (e1 ·+ e2) ecomplete
+    ECAsc  : ∀{τ e} → τ tcomplete → e ecomplete → (e ·: τ) ecomplete
+    ECVar  : ∀{x} → (X x) ecomplete
     ECLam1 : ∀{x e} → e ecomplete → (·λ x e) ecomplete
     ECLam2 : ∀{x e τ} → e ecomplete → τ tcomplete → (·λ x [ τ ] e) ecomplete
-    ECAp : ∀{e1 e2} → e1 ecomplete → e2 ecomplete → (e1 ∘ e2) ecomplete
-
+    ECAp   : ∀{e1 e2} → e1 ecomplete → e2 ecomplete → (e1 ∘ e2) ecomplete
+    
   -- those internal expressions without holes
   data _dcomplete : ihexp → Set where
-    DCVar : ∀{x} → (X x) dcomplete
-    DCConst : c dcomplete
-    DCLam : ∀{x τ d} → d dcomplete → τ tcomplete → (·λ x [ τ ] d) dcomplete
-    DCAp : ∀{d1 d2} → d1 dcomplete → d2 dcomplete → (d1 ∘ d2) dcomplete
+    DCNum  : ∀{n} → (N n) dcomplete
+    DCPlus : ∀{d1 d2} → d1 dcomplete → d2 dcomplete → (d1 ·+ d2) dcomplete
+    DCVar  : ∀{x} → (X x) dcomplete
+    DCLam  : ∀{x τ d} → d dcomplete → τ tcomplete → (·λ x [ τ ] d) dcomplete
+    DCAp   : ∀{d1 d2} → d1 dcomplete → d2 dcomplete → (d1 ∘ d2) dcomplete
     DCCast : ∀{d τ1 τ2} → d dcomplete → τ1 tcomplete → τ2 tcomplete → (d ⟨ τ1 ⇒ τ2 ⟩) dcomplete
 
   -- contexts that only produce complete types
@@ -186,114 +211,130 @@ module core where
   -- those internal expressions where every cast is the identity cast and
   -- there are no failed casts
   data cast-id : ihexp → Set where
-    CIConst  : cast-id c
+    CINum    : ∀{n} → cast-id (N n)
+    CIPlus   : ∀{d1 d2} → cast-id d1 → cast-id d2 → cast-id (d1 ·+ d2)
     CIVar    : ∀{x} → cast-id (X x)
     CILam    : ∀{x τ d} → cast-id d → cast-id (·λ x [ τ ] d)
+    CIAp     : ∀{d1 d2} → cast-id d1 → cast-id d2 → cast-id (d1 ∘ d2)
     CIHole   : ∀{u} → cast-id (⦇-⦈⟨ u ⟩)
     CINEHole : ∀{d u} → cast-id d → cast-id (⦇⌜ d ⌟⦈⟨ u ⟩)
-    CIAp     : ∀{d1 d2} → cast-id d1 → cast-id d2 → cast-id (d1 ∘ d2)
     CICast   : ∀{d τ} → cast-id d → cast-id (d ⟨ τ ⇒ τ ⟩)
 
   -- expansion
   mutual
     -- synthesis
     data _⊢_⇒_~>_⊣_ : (Γ : tctx) (e : hexp) (τ : htyp) (d : ihexp) (Δ : hctx) → Set where
-      ESConst : ∀{Γ} → Γ ⊢ c ⇒ b ~> c ⊣ ∅
-      ESVar   : ∀{Γ x τ} → (x , τ) ∈ Γ →
-                         Γ ⊢ X x ⇒ τ ~> X x ⊣ ∅
-      ESLam   : ∀{Γ x τ1 τ2 e d Δ } →
-                     (x # Γ) →
-                     (Γ ,, (x , τ1)) ⊢ e ⇒ τ2 ~> d ⊣ Δ →
-                      Γ ⊢ ·λ x [ τ1 ] e ⇒ (τ1 ==> τ2) ~> ·λ x [ τ1 ] d ⊣ Δ
-      ESAp : ∀{Γ e1 τ τ1 τ1' τ2 τ2' d1 Δ1 e2 d2 Δ2 } →
-              holes-disjoint e1 e2 →
-              Δ1 ## Δ2 →
-              Γ ⊢ e1 => τ1 →
-              τ1 ▸arr τ2 ==> τ →
-              Γ ⊢ e1 ⇐ (τ2 ==> τ) ~> d1 :: τ1' ⊣ Δ1 →
-              Γ ⊢ e2 ⇐ τ2 ~> d2 :: τ2' ⊣ Δ2 →
-              Γ ⊢ e1 ∘ e2 ⇒ τ ~> (d1 ⟨ τ1' ⇒ τ2 ==> τ ⟩) ∘ (d2 ⟨ τ2' ⇒ τ2 ⟩) ⊣ (Δ1 ∪ Δ2)
-      ESEHole : ∀{ Γ u } →
-                Γ ⊢ ⦇-⦈[ u ] ⇒ ⦇-⦈ ~> ⦇-⦈⟨ u , Id Γ ⟩ ⊣  ■ (u :: ⦇-⦈ [ Γ ])
-      ESNEHole : ∀{ Γ e τ d u Δ } →
+      ESNum  : ∀{Γ n} → Γ ⊢ (N n) ⇒ num ~> (N n) ⊣ ∅
+      ESPlus : ∀{Γ e1 e2 d1 d2 Δ1 Δ2 τ1 τ2} →
+               Δ1 ## Δ2 →
+               holes-disjoint e1 e2 →
+               Γ ⊢ e1 ⇐ num ~> d1 :: τ1 ⊣ Δ1 →
+               Γ ⊢ e2 ⇐ num ~> d2 :: τ2 ⊣ Δ2 →
+               Γ ⊢ e1 ·+ e2 ⇒ num ~> (d1 ⟨ τ1 ⇒ num ⟩) ·+ (d2 ⟨ τ2 ⇒ num ⟩) ⊣ (Δ1 ∪ Δ2)
+      ESAsc  : ∀{Γ e τ d τ' Δ} →
+               Γ ⊢ e ⇐ τ ~> d :: τ' ⊣ Δ →
+               Γ ⊢ (e ·: τ) ⇒ τ ~> d ⟨ τ' ⇒ τ ⟩ ⊣ Δ
+      ESVar  : ∀{Γ x τ} →
+               (x , τ) ∈ Γ →
+               Γ ⊢ X x ⇒ τ ~> X x ⊣ ∅
+      ESLam  : ∀{Γ x τ1 τ2 e d Δ} →
+               (x # Γ) →
+               (Γ ,, (x , τ1)) ⊢ e ⇒ τ2 ~> d ⊣ Δ →
+               Γ ⊢ ·λ x [ τ1 ] e ⇒ (τ1 ==> τ2) ~> ·λ x [ τ1 ] d ⊣ Δ
+      ESAp   : ∀{Γ e1 τ τ1 τ1' τ2 τ2' d1 Δ1 e2 d2 Δ2} →
+               holes-disjoint e1 e2 →
+               Δ1 ## Δ2 →
+               Γ ⊢ e1 => τ1 →
+               τ1 ▸arr τ2 ==> τ →
+               Γ ⊢ e1 ⇐ (τ2 ==> τ) ~> d1 :: τ1' ⊣ Δ1 →
+               Γ ⊢ e2 ⇐ τ2 ~> d2 :: τ2' ⊣ Δ2 →
+               Γ ⊢ e1 ∘ e2 ⇒ τ ~> (d1 ⟨ τ1' ⇒ τ2 ==> τ ⟩) ∘ (d2 ⟨ τ2' ⇒ τ2 ⟩) ⊣ (Δ1 ∪ Δ2)
+      ESEHole  : ∀{Γ u} →
+                 Γ ⊢ ⦇-⦈[ u ] ⇒ ⦇-⦈ ~> ⦇-⦈⟨ u , Id Γ ⟩ ⊣  ■ (u :: ⦇-⦈ [ Γ ])
+      ESNEHole : ∀{Γ e τ d u Δ} →
                  Δ ## (■ (u , Γ , ⦇-⦈)) →
                  Γ ⊢ e ⇒ τ ~> d ⊣ Δ →
                  Γ ⊢ ⦇⌜ e ⌟⦈[ u ] ⇒ ⦇-⦈ ~> ⦇⌜ d ⌟⦈⟨ u , Id Γ  ⟩ ⊣ (Δ ,, u :: ⦇-⦈ [ Γ ])
-      ESAsc : ∀ {Γ e τ d τ' Δ} →
-                 Γ ⊢ e ⇐ τ ~> d :: τ' ⊣ Δ →
-                 Γ ⊢ (e ·: τ) ⇒ τ ~> d ⟨ τ' ⇒ τ ⟩ ⊣ Δ
+      
 
     -- analysis
-    data _⊢_⇐_~>_::_⊣_ : (Γ : tctx) (e : hexp) (τ : htyp) (d : ihexp) (τ' : htyp) (Δ : hctx) → Set where
-      EALam : ∀{Γ x τ τ1 τ2 e d τ2' Δ } →
-              (x # Γ) →
-              τ ▸arr τ1 ==> τ2 →
-              (Γ ,, (x , τ1)) ⊢ e ⇐ τ2 ~> d :: τ2' ⊣ Δ →
-              Γ ⊢ ·λ x e ⇐ τ ~> ·λ x [ τ1 ] d :: τ1 ==> τ2' ⊣ Δ
+    data _⊢_⇐_~>_::_⊣_ : (Γ : tctx) (e : hexp) (τ : htyp)
+                         (d : ihexp) (τ' : htyp) (Δ : hctx) → Set where
+      EALam    : ∀{Γ x τ τ1 τ2 e d τ2' Δ} →
+                 (x # Γ) →
+                 τ ▸arr τ1 ==> τ2 →
+                 (Γ ,, (x , τ1)) ⊢ e ⇐ τ2 ~> d :: τ2' ⊣ Δ →
+                 Γ ⊢ ·λ x e ⇐ τ ~> ·λ x [ τ1 ] d :: τ1 ==> τ2' ⊣ Δ
       EASubsume : ∀{e Γ τ' d Δ τ} →
                   ((u : Nat) → e ≠ ⦇-⦈[ u ]) →
                   ((e' : hexp) (u : Nat) → e ≠ ⦇⌜ e' ⌟⦈[ u ]) →
                   Γ ⊢ e ⇒ τ' ~> d ⊣ Δ →
                   τ ~ τ' →
                   Γ ⊢ e ⇐ τ ~> d :: τ' ⊣ Δ
-      EAEHole : ∀{ Γ u τ  } →
-                Γ ⊢ ⦇-⦈[ u ] ⇐ τ ~> ⦇-⦈⟨ u , Id Γ  ⟩ :: τ ⊣ ■ (u :: τ [ Γ ])
-      EANEHole : ∀{ Γ e u τ d τ' Δ  } →
+      EAEHole  : ∀{Γ u τ} →
+                 Γ ⊢ ⦇-⦈[ u ] ⇐ τ ~> ⦇-⦈⟨ u , Id Γ  ⟩ :: τ ⊣ ■ (u :: τ [ Γ ])
+      EANEHole : ∀{Γ e u τ d τ' Δ} →
                  Δ ## (■ (u , Γ , τ)) →
                  Γ ⊢ e ⇒ τ' ~> d ⊣ Δ →
                  Γ ⊢ ⦇⌜ e ⌟⦈[ u ] ⇐ τ ~> ⦇⌜ d ⌟⦈⟨ u , Id Γ  ⟩ :: τ ⊣ (Δ ,, u :: τ [ Γ ])
 
   -- ground types
   data _ground : (τ : htyp) → Set where
-    GBase : b ground
+    GNum  : num ground
     GHole : ⦇-⦈ ==> ⦇-⦈ ground
 
   mutual
     -- substitution typing
     data _,_⊢_:s:_ : hctx → tctx → env → tctx → Set where
-      STAId : ∀{Γ Γ' Δ} →
-                  ((x : Nat) (τ : htyp) → (x , τ) ∈ Γ' → (x , τ) ∈ Γ) →
-                  Δ , Γ ⊢ Id Γ' :s: Γ'
-      STASubst : ∀{Γ Δ σ y Γ' d τ } →
-               Δ , Γ ,, (y , τ) ⊢ σ :s: Γ' →
-               Δ , Γ ⊢ d :: τ →
-               Δ , Γ ⊢ Subst d y σ :s: Γ'
+      STAId    : ∀{Γ Γ' Δ} →
+                 ((x : Nat) (τ : htyp) →
+                 (x , τ) ∈ Γ' → (x , τ) ∈ Γ) →
+                 Δ , Γ ⊢ Id Γ' :s: Γ'
+      STASubst : ∀{Γ Δ σ y Γ' d τ} →
+                 Δ , Γ ,, (y , τ) ⊢ σ :s: Γ' →
+                 Δ , Γ ⊢ d :: τ →
+                 Δ , Γ ⊢ Subst d y σ :s: Γ'
 
     -- type assignment
     data _,_⊢_::_ : (Δ : hctx) (Γ : tctx) (d : ihexp) (τ : htyp) → Set where
-      TAConst : ∀{Δ Γ} → Δ , Γ ⊢ c :: b
-      TAVar : ∀{Δ Γ x τ} → (x , τ) ∈ Γ → Δ , Γ ⊢ X x :: τ
-      TALam : ∀{ Δ Γ x τ1 d τ2} →
-              x # Γ →
-              Δ , (Γ ,, (x , τ1)) ⊢ d :: τ2 →
-              Δ , Γ ⊢ ·λ x [ τ1 ] d :: (τ1 ==> τ2)
-      TAAp : ∀{ Δ Γ d1 d2 τ1 τ} →
-             Δ , Γ ⊢ d1 :: τ1 ==> τ →
-             Δ , Γ ⊢ d2 :: τ1 →
-             Δ , Γ ⊢ d1 ∘ d2 :: τ
-      TAEHole : ∀{ Δ Γ σ u Γ' τ} →
+      TANum   : ∀{Δ Γ n} → Δ , Γ ⊢ (N n) :: num
+      TAPlus  : ∀{Δ Γ d1 d2} →
+                Δ , Γ ⊢ d1 :: num →
+                Δ , Γ ⊢ d2 :: num →
+                Δ , Γ ⊢ (d1 ·+ d2) :: num
+      TAVar   : ∀{Δ Γ x τ} → (x , τ) ∈ Γ → Δ , Γ ⊢ X x :: τ
+      TALam   : ∀{Δ Γ x τ1 d τ2} →
+                x # Γ →
+                Δ , (Γ ,, (x , τ1)) ⊢ d :: τ2 →
+                Δ , Γ ⊢ ·λ x [ τ1 ] d :: (τ1 ==> τ2)
+      TAAp    : ∀{Δ Γ d1 d2 τ1 τ} →
+                Δ , Γ ⊢ d1 :: τ1 ==> τ →
+                Δ , Γ ⊢ d2 :: τ1 →
+                Δ , Γ ⊢ d1 ∘ d2 :: τ
+      TAEHole : ∀{Δ Γ σ u Γ' τ} →
                 (u , (Γ' , τ)) ∈ Δ →
                 Δ , Γ ⊢ σ :s: Γ' →
                 Δ , Γ ⊢ ⦇-⦈⟨ u , σ ⟩ :: τ
-      TANEHole : ∀ { Δ Γ d τ' Γ' u σ τ } →
+      TANEHole : ∀{Δ Γ d τ' Γ' u σ τ} →
                  (u , (Γ' , τ)) ∈ Δ →
                  Δ , Γ ⊢ d :: τ' →
                  Δ , Γ ⊢ σ :s: Γ' →
                  Δ , Γ ⊢ ⦇⌜ d ⌟⦈⟨ u , σ ⟩ :: τ
-      TACast : ∀{ Δ Γ d τ1 τ2} →
-             Δ , Γ ⊢ d :: τ1 →
-             τ1 ~ τ2 →
-             Δ , Γ ⊢ d ⟨ τ1 ⇒ τ2 ⟩ :: τ2
+      TACast  : ∀{Δ Γ d τ1 τ2} →
+                Δ , Γ ⊢ d :: τ1 →
+                τ1 ~ τ2 →
+                Δ , Γ ⊢ d ⟨ τ1 ⇒ τ2 ⟩ :: τ2
       TAFailedCast : ∀{Δ Γ d τ1 τ2} →
-             Δ , Γ ⊢ d :: τ1 →
-             τ1 ground →
-             τ2 ground →
-             τ1 ≠ τ2 →
-             Δ , Γ ⊢ d ⟨ τ1 ⇒⦇-⦈⇏ τ2 ⟩ :: τ2
+                     Δ , Γ ⊢ d :: τ1 →
+                     τ1 ground →
+                     τ2 ground →
+                     τ1 ≠ τ2 →
+                     Δ , Γ ⊢ d ⟨ τ1 ⇒⦇-⦈⇏ τ2 ⟩ :: τ2
 
   -- substitution
   [_/_]_ : ihexp → Nat → ihexp → ihexp
-  [ d / y ] c = c
+  [ d / y ] (N n) = N n
+  [ d / y ] (d1 ·+ d2) = ([ d / y ] d1) ·+ ([ d / y ] d2)
   [ d / y ] X x
     with natEQ x y
   [ d / y ] X .y | Inl refl = d
@@ -315,42 +356,56 @@ module core where
 
   -- values
   data _val : (d : ihexp) → Set where
-    VConst : c val
-    VLam   : ∀{x τ d} → (·λ x [ τ ] d) val
+    VNum : ∀{n} → (N n) val
+    VLam : ∀{x τ d} → (·λ x [ τ ] d) val
 
   -- boxed values
   data _boxedval : (d : ihexp) → Set where
-    BVVal : ∀{d} → d val → d boxedval
-    BVArrCast : ∀{ d τ1 τ2 τ3 τ4 } →
-                τ1 ==> τ2 ≠ τ3 ==> τ4 →
-                d boxedval →
-                d ⟨ (τ1 ==> τ2) ⇒ (τ3 ==> τ4) ⟩ boxedval
-    BVHoleCast : ∀{ τ d } → τ ground → d boxedval → d ⟨ τ ⇒ ⦇-⦈ ⟩ boxedval
+    BVVal      : ∀{d} → d val → d boxedval
+    BVArrCast  : ∀{d τ1 τ2 τ3 τ4} →
+                 τ1 ==> τ2 ≠ τ3 ==> τ4 →
+                 d boxedval →
+                 d ⟨ (τ1 ==> τ2) ⇒ (τ3 ==> τ4) ⟩ boxedval
+    BVHoleCast : ∀{τ d} →
+                 τ ground →
+                 d boxedval →
+                 d ⟨ τ ⇒ ⦇-⦈ ⟩ boxedval
 
   mutual
     -- indeterminate forms
     data _indet : (d : ihexp) → Set where
-      IEHole : ∀{u σ} → ⦇-⦈⟨ u , σ ⟩ indet
-      INEHole : ∀{d u σ} → d final → ⦇⌜ d ⌟⦈⟨ u , σ ⟩ indet
-      IAp : ∀{d1 d2} → ((τ1 τ2 τ3 τ4 : htyp) (d1' : ihexp) →
-                       d1 ≠ (d1' ⟨(τ1 ==> τ2) ⇒ (τ3 ==> τ4)⟩)) →
-                       d1 indet →
-                       d2 final →
-                       (d1 ∘ d2) indet
+      IPlus1  : ∀{d1 d2} →
+                 d1 indet →
+                 d2 final →
+                 (d1 ·+ d2) indet
+      IPlus2  : ∀{d1 d2} →
+                 d1 final →
+                 d2 indet →
+                 (d1 ·+ d2) indet
+      IAp      : ∀{d1 d2} →
+                 ((τ1 τ2 τ3 τ4 : htyp) (d1' : ihexp) →
+                 d1 ≠ (d1' ⟨(τ1 ==> τ2) ⇒ (τ3 ==> τ4)⟩)) →
+                 d1 indet →
+                 d2 final →
+                 (d1 ∘ d2) indet
+      IEHole   : ∀{u σ} → ⦇-⦈⟨ u , σ ⟩ indet
+      INEHole  : ∀{d u σ} →
+                 d final →
+                 ⦇⌜ d ⌟⦈⟨ u , σ ⟩ indet
       ICastArr : ∀{d τ1 τ2 τ3 τ4} →
                  τ1 ==> τ2 ≠ τ3 ==> τ4 →
                  d indet →
                  d ⟨ (τ1 ==> τ2) ⇒ (τ3 ==> τ4) ⟩ indet
-      ICastGroundHole : ∀{ τ d } →
+      ICastGroundHole : ∀{τ d} →
                         τ ground →
                         d indet →
                         d ⟨ τ ⇒  ⦇-⦈ ⟩ indet
-      ICastHoleGround : ∀ { d τ } →
+      ICastHoleGround : ∀{d τ} →
                         ((d' : ihexp) (τ' : htyp) → d ≠ (d' ⟨ τ' ⇒ ⦇-⦈ ⟩)) →
                         d indet →
                         τ ground →
                         d ⟨ ⦇-⦈ ⇒ τ ⟩ indet
-      IFailedCast : ∀{ d τ1 τ2 } →
+      IFailedCast : ∀{d τ1 τ2} →
                     d final →
                     τ1 ground →
                     τ2 ground →
@@ -368,6 +423,8 @@ module core where
   -- evaluation contexts
   data ectx : Set where
     ⊙ : ectx
+    _·+₁_ : ectx → ihexp → ectx
+    _·+₂_ : ihexp → ectx → ectx
     _∘₁_ : ectx → ihexp → ectx
     _∘₂_ : ihexp → ectx → ectx
     ⦇⌜_⌟⦈⟨_⟩ : ectx → (Nat × env ) → ectx
@@ -378,12 +435,19 @@ module core where
   -- the red brackets, all syntactically well formed ectxs are valid. with
   -- finality premises, that's not true, and that would propagate through
   -- additions to the calculus. so we leave it here for clarity but note
-  -- that, as written, in any use case its either trival to prove or
+  -- that, as written, in any use case it's either trival to prove or
   -- provides no additional information
 
    --ε is an evaluation context
   data _evalctx : (ε : ectx) → Set where
     ECDot : ⊙ evalctx
+    ECPlus1 : ∀{d ε} →
+              ε evalctx →
+              (ε ·+₁ d) evalctx
+    ECPlus2 : ∀{d ε} →
+              -- d final → -- red brackets
+              ε evalctx →
+              (d ·+₂ ε) evalctx
     ECAp1 : ∀{d ε} →
             ε evalctx →
             (ε ∘₁ d) evalctx
@@ -394,32 +458,39 @@ module core where
     ECNEHole : ∀{ε u σ} →
                ε evalctx →
                ⦇⌜ ε ⌟⦈⟨ u , σ ⟩ evalctx
-    ECCast : ∀{ ε τ1 τ2} →
+    ECCast : ∀{ε τ1 τ2} →
              ε evalctx →
              (ε ⟨ τ1 ⇒ τ2 ⟩) evalctx
-    ECFailedCast : ∀{ ε τ1 τ2 } →
+    ECFailedCast : ∀{ε τ1 τ2} →
                    ε evalctx →
                    ε ⟨ τ1 ⇒⦇-⦈⇏ τ2 ⟩ evalctx
 
   -- d is the result of filling the hole in ε with d'
   data _==_⟦_⟧ : (d : ihexp) (ε : ectx) (d' : ihexp) → Set where
     FHOuter : ∀{d} → d == ⊙ ⟦ d ⟧
+    FHPlus1 : ∀{d1 d1' d2 ε} →
+              d1 == ε ⟦ d1' ⟧ →
+              (d1 ·+ d2) == (ε ·+₁ d2) ⟦ d1' ⟧
+    FHPlus2 : ∀{d1 d2 d2' ε} →
+              -- d1 final → -- red brackets
+              d2 == ε ⟦ d2' ⟧ →
+              (d1 ·+ d2) == (d1 ·+₂ ε) ⟦ d2' ⟧
     FHAp1 : ∀{d1 d1' d2 ε} →
-           d1 == ε ⟦ d1' ⟧ →
-           (d1 ∘ d2) == (ε ∘₁ d2) ⟦ d1' ⟧
+            d1 == ε ⟦ d1' ⟧ →
+            (d1 ∘ d2) == (ε ∘₁ d2) ⟦ d1' ⟧
     FHAp2 : ∀{d1 d2 d2' ε} →
-           -- d1 final → -- red brackets
-           d2 == ε ⟦ d2' ⟧ →
-           (d1 ∘ d2) == (d1 ∘₂ ε) ⟦ d2' ⟧
-    FHNEHole : ∀{ d d' ε u σ} →
-              d == ε ⟦ d' ⟧ →
-              ⦇⌜ d ⌟⦈⟨ (u , σ ) ⟩ ==  ⦇⌜ ε ⌟⦈⟨ (u , σ ) ⟩ ⟦ d' ⟧
-    FHCast : ∀{ d d' ε τ1 τ2 } →
-            d == ε ⟦ d' ⟧ →
-            d ⟨ τ1 ⇒ τ2 ⟩ == ε ⟨ τ1 ⇒ τ2 ⟩ ⟦ d' ⟧
-    FHFailedCast : ∀{ d d' ε τ1 τ2} →
-            d == ε ⟦ d' ⟧ →
-            (d ⟨ τ1 ⇒⦇-⦈⇏ τ2 ⟩) == (ε ⟨ τ1 ⇒⦇-⦈⇏ τ2 ⟩) ⟦ d' ⟧
+            -- d1 final → -- red brackets
+            d2 == ε ⟦ d2' ⟧ →
+            (d1 ∘ d2) == (d1 ∘₂ ε) ⟦ d2' ⟧
+    FHNEHole : ∀{d d' ε u σ} →
+               d == ε ⟦ d' ⟧ →
+               ⦇⌜ d ⌟⦈⟨ (u , σ ) ⟩ ==  ⦇⌜ ε ⌟⦈⟨ (u , σ ) ⟩ ⟦ d' ⟧
+    FHCast : ∀{d d' ε τ1 τ2} →
+             d == ε ⟦ d' ⟧ →
+             d ⟨ τ1 ⇒ τ2 ⟩ == ε ⟨ τ1 ⇒ τ2 ⟩ ⟦ d' ⟧
+    FHFailedCast : ∀{d d' ε τ1 τ2} →
+                   d == ε ⟦ d' ⟧ →
+                   (d ⟨ τ1 ⇒⦇-⦈⇏ τ2 ⟩) == (ε ⟨ τ1 ⇒⦇-⦈⇏ τ2 ⟩) ⟦ d' ⟧
 
   -- matched ground types
   data _▸gnd_ : htyp → htyp → Set where
@@ -429,38 +500,41 @@ module core where
 
   -- instruction transition judgement
   data _→>_ : (d d' : ihexp) → Set where
-    ITLam : ∀{ x τ d1 d2 } →
+    ITPlus : ∀{n1 n2 n3} →
+             (n1 nat+ n2) == n3 →
+             ((N n1) ·+ (N n2)) →> (N n3)
+    ITLam : ∀{x τ d1 d2} →
             -- d2 final → -- red brackets
             ((·λ x [ τ ] d1) ∘ d2) →> ([ d2 / x ] d1)
-    ITCastID : ∀{d τ } →
+    ITCastID : ∀{d τ} →
                -- d final → -- red brackets
                (d ⟨ τ ⇒ τ ⟩) →> d
-    ITCastSucceed : ∀{d τ } →
+    ITCastSucceed : ∀{d τ} →
                     -- d final → -- red brackets
                     τ ground →
                     (d ⟨ τ ⇒ ⦇-⦈ ⇒ τ ⟩) →> d
-    ITCastFail : ∀{ d τ1 τ2} →
+    ITCastFail : ∀{d τ1 τ2} →
                  -- d final → -- red brackets
                  τ1 ground →
                  τ2 ground →
                  τ1 ≠ τ2 →
                  (d ⟨ τ1 ⇒ ⦇-⦈ ⇒ τ2 ⟩) →> (d ⟨ τ1 ⇒⦇-⦈⇏ τ2 ⟩)
-    ITApCast : ∀{d1 d2 τ1 τ2 τ1' τ2' } →
+    ITApCast : ∀{d1 d2 τ1 τ2 τ1' τ2'} →
                -- d1 final → -- red brackets
                -- d2 final → -- red brackets
                ((d1 ⟨ (τ1 ==> τ2) ⇒ (τ1' ==> τ2')⟩) ∘ d2) →> ((d1 ∘ (d2 ⟨ τ1' ⇒ τ1 ⟩)) ⟨ τ2 ⇒ τ2' ⟩)
-    ITGround : ∀{ d τ τ'} →
+    ITGround : ∀{d τ τ'} →
                -- d final → -- red brackets
                τ ▸gnd τ' →
                (d ⟨ τ ⇒ ⦇-⦈ ⟩) →> (d ⟨ τ ⇒ τ' ⇒ ⦇-⦈ ⟩)
-    ITExpand : ∀{d τ τ' } →
+    ITExpand : ∀{d τ τ'} →
                -- d final → -- red brackets
                τ ▸gnd τ' →
                (d ⟨ ⦇-⦈ ⇒ τ ⟩) →> (d ⟨ ⦇-⦈ ⇒ τ' ⇒ τ ⟩)
 
   -- single step (in contextual evaluation sense)
   data _↦_ : (d d' : ihexp) → Set where
-    Step : ∀{ d d0 d' d0' ε} →
+    Step : ∀{d d0 d' d0' ε} →
            d == ε ⟦ d0 ⟧ →
            d0 →> d0' →
            d' == ε ⟦ d0' ⟧ →
@@ -470,41 +544,44 @@ module core where
   data _↦*_ : (d d' : ihexp) → Set where
     MSRefl : ∀{d} → d ↦* d
     MSStep : ∀{d d' d''} →
-                 d ↦ d' →
-                 d' ↦* d'' →
-                 d  ↦* d''
+             d ↦ d' →
+             d' ↦* d'' →
+             d  ↦* d''
 
   -- freshness
   mutual
     -- ... with respect to a hole context
     data envfresh : Nat → env → Set where
       EFId : ∀{x Γ} → x # Γ → envfresh x (Id Γ)
-      EFSubst : ∀{x d σ y} → fresh x d
-                           → envfresh x σ
-                           → x ≠ y
-                           → envfresh x (Subst d y σ)
+      EFSubst : ∀{x d σ y} →
+                fresh x d →
+                envfresh x σ →
+                x ≠ y →
+                envfresh x (Subst d y σ)
 
     -- ... for inernal expressions
     data fresh : Nat → ihexp → Set where
-      FConst : ∀{x} → fresh x c
+      FNum   : ∀{x n} → fresh x (N n)
+      FPlus  : ∀{x d1 d2} → fresh x d1 → fresh x d2 → fresh x (d1 ·+ d2)
       FVar   : ∀{x y} → x ≠ y → fresh x (X y)
       FLam   : ∀{x y τ d} → x ≠ y → fresh x d → fresh x (·λ y [ τ ] d)
+      FAp    : ∀{x d1 d2} → fresh x d1 → fresh x d2 → fresh x (d1 ∘ d2)
       FHole  : ∀{x u σ} → envfresh x σ → fresh x (⦇-⦈⟨ u , σ ⟩)
       FNEHole : ∀{x d u σ} → envfresh x σ → fresh x d → fresh x (⦇⌜ d ⌟⦈⟨ u , σ ⟩)
-      FAp     : ∀{x d1 d2} → fresh x d1 → fresh x d2 → fresh x (d1 ∘ d2)
       FCast   : ∀{x d τ1 τ2} → fresh x d → fresh x (d ⟨ τ1 ⇒ τ2 ⟩)
       FFailedCast : ∀{x d τ1 τ2} → fresh x d → fresh x (d ⟨ τ1 ⇒⦇-⦈⇏ τ2 ⟩)
 
   -- ... for external expressions
   data freshh : Nat → hexp → Set where
-    FRHConst : ∀{x} → freshh x c
+    FRHNum    : ∀{x n} → freshh x (N n)
+    FRHPlus   : ∀{x d1 d2} → freshh x d1 → freshh x d2 → freshh x (d1 ·+ d2)
     FRHAsc   : ∀{x e τ} → freshh x e → freshh x (e ·: τ)
     FRHVar   : ∀{x y} → x ≠ y → freshh x (X y)
     FRHLam1  : ∀{x y e} → x ≠ y → freshh x e → freshh x (·λ y e)
     FRHLam2  : ∀{x τ e y} → x ≠ y → freshh x e → freshh x (·λ y [ τ ] e)
+    FRHAp    : ∀{x e1 e2} → freshh x e1 → freshh x e2 → freshh x (e1 ∘ e2)
     FRHEHole : ∀{x u} → freshh x (⦇-⦈[ u ])
     FRHNEHole : ∀{x u e} → freshh x e → freshh x (⦇⌜ e ⌟⦈[ u ])
-    FRHAp : ∀{x e1 e2} → freshh x e1 → freshh x e2 → freshh x (e1 ∘ e2)
 
   -- x is not used in a binding site in d
   mutual
@@ -516,21 +593,26 @@ module core where
                             → unbound-in-σ x (Subst d y σ)
 
     data unbound-in : (x : Nat) (d : ihexp) → Set where
-      UBConst : ∀{x} → unbound-in x c
+      UBNum : ∀{x n} → unbound-in x (N n)
+      UBPlus : ∀{x d1 d2} →
+               unbound-in x d1 →
+               unbound-in x d2 →
+               unbound-in x (d1 ·+ d2)
       UBVar : ∀{x y} → unbound-in x (X y)
       UBLam2 : ∀{x d y τ} → x ≠ y
-                           → unbound-in x d
-                           → unbound-in x (·λ_[_]_ y τ d)
-      UBHole : ∀{x u σ} → unbound-in-σ x σ
-                         → unbound-in x (⦇-⦈⟨ u , σ ⟩)
-      UBNEHole : ∀{x u σ d }
-                  → unbound-in-σ x σ
-                  → unbound-in x d
-                  → unbound-in x (⦇⌜ d ⌟⦈⟨ u , σ ⟩)
-      UBAp : ∀{ x d1 d2 } →
-            unbound-in x d1 →
-            unbound-in x d2 →
-            unbound-in x (d1 ∘ d2)
+               → unbound-in x d
+               → unbound-in x (·λ_[_]_ y τ d)
+      UBAp : ∀{x d1 d2} →
+             unbound-in x d1 →
+             unbound-in x d2 →
+             unbound-in x (d1 ∘ d2)
+      UBHole : ∀{x u σ} →
+               unbound-in-σ x σ →
+               unbound-in x (⦇-⦈⟨ u , σ ⟩)
+      UBNEHole : ∀{x u σ d} →
+                 unbound-in-σ x σ →
+                 unbound-in x d →
+                 unbound-in x (⦇⌜ d ⌟⦈⟨ u , σ ⟩)
       UBCast : ∀{x d τ1 τ2} → unbound-in x d → unbound-in x (d ⟨ τ1 ⇒ τ2 ⟩)
       UBFailedCast : ∀{x d τ1 τ2} → unbound-in x d → unbound-in x (d ⟨ τ1 ⇒⦇-⦈⇏ τ2 ⟩)
 
@@ -538,55 +620,75 @@ module core where
   mutual
     data binders-disjoint-σ : env → ihexp → Set where
       BDσId : ∀{Γ d} → binders-disjoint-σ (Id Γ) d
-      BDσSubst : ∀{d1 d2 y σ} → binders-disjoint d1 d2
-                              → binders-disjoint-σ σ d2
-                              → binders-disjoint-σ (Subst d1 y σ) d2
+      BDσSubst : ∀{d1 d2 y σ} →
+                 binders-disjoint d1 d2 →
+                 binders-disjoint-σ σ d2 →
+                 binders-disjoint-σ (Subst d1 y σ) d2
 
     -- two terms that do not share any binders
     data binders-disjoint : (d1 : ihexp) → (d2 : ihexp) → Set where
-      BDConst : ∀{d} → binders-disjoint c d
+      BDNum : ∀{d n} → binders-disjoint (N n) d
+      BDPlus : ∀{d1 d2 d3} →
+               binders-disjoint d1 d3 →
+               binders-disjoint d2 d3 →
+               binders-disjoint (d1 ·+ d2) d3
       BDVar : ∀{x d} → binders-disjoint (X x) d
-      BDLam : ∀{x τ d1 d2} → binders-disjoint d1 d2
-                            → unbound-in x d2
-                            → binders-disjoint (·λ_[_]_ x τ d1) d2
-      BDHole : ∀{u σ d2} → binders-disjoint-σ σ d2
-                         → binders-disjoint (⦇-⦈⟨ u , σ ⟩) d2
-      BDNEHole : ∀{u σ d1 d2} → binders-disjoint-σ σ d2
-                              → binders-disjoint d1 d2
-                              → binders-disjoint (⦇⌜ d1 ⌟⦈⟨ u , σ ⟩) d2
-      BDAp :  ∀{d1 d2 d3} → binders-disjoint d1 d3
-                          → binders-disjoint d2 d3
-                          → binders-disjoint (d1 ∘ d2) d3
-      BDCast : ∀{d1 d2 τ1 τ2} → binders-disjoint d1 d2 → binders-disjoint (d1 ⟨ τ1 ⇒ τ2 ⟩) d2
-      BDFailedCast : ∀{d1 d2 τ1 τ2} → binders-disjoint d1 d2 → binders-disjoint (d1 ⟨ τ1 ⇒⦇-⦈⇏ τ2 ⟩) d2
+      BDLam : ∀{x τ d1 d2} →
+              binders-disjoint d1 d2 →
+              unbound-in x d2 →
+              binders-disjoint (·λ_[_]_ x τ d1) d2
+      BDAp :  ∀{d1 d2 d3} →
+              binders-disjoint d1 d3 →
+              binders-disjoint d2 d3 →
+              binders-disjoint (d1 ∘ d2) d3
+      BDHole : ∀{u σ d2} →
+               binders-disjoint-σ σ d2 →
+               binders-disjoint (⦇-⦈⟨ u , σ ⟩) d2
+      BDNEHole : ∀{u σ d1 d2} →
+                 binders-disjoint-σ σ d2 →
+                 binders-disjoint d1 d2 →
+                 binders-disjoint (⦇⌜ d1 ⌟⦈⟨ u , σ ⟩) d2
+      BDCast : ∀{d1 d2 τ1 τ2} →
+               binders-disjoint d1 d2 →
+               binders-disjoint (d1 ⟨ τ1 ⇒ τ2 ⟩) d2
+      BDFailedCast : ∀{d1 d2 τ1 τ2} →
+                     binders-disjoint d1 d2 →
+                     binders-disjoint (d1 ⟨ τ1 ⇒⦇-⦈⇏ τ2 ⟩) d2
 
   mutual
   -- each term has to be binders unique, and they have to be pairwise
   -- disjoint with the collection of bound vars
     data binders-unique-σ : env → Set where
       BUσId : ∀{Γ} → binders-unique-σ (Id Γ)
-      BUσSubst : ∀{d y σ} → binders-unique d
-                          → binders-unique-σ σ
-                          → binders-disjoint-σ σ d
-                          → binders-unique-σ (Subst d y σ)
+      BUσSubst : ∀{d y σ} →
+                 binders-unique d →
+                 binders-unique-σ σ →
+                 binders-disjoint-σ σ d →
+                 binders-unique-σ (Subst d y σ)
 
     -- all the variable names in the term are unique
     data binders-unique : ihexp → Set where
-      BUHole : binders-unique c
+      BUHole : ∀{n} → binders-unique (N n)
       BUVar : ∀{x} → binders-unique (X x)
-      BULam : {x : Nat} {τ : htyp} {d : ihexp} → binders-unique d
-                                                → unbound-in x d
-                                                → binders-unique (·λ_[_]_ x τ d)
-      BUEHole : ∀{u σ} → binders-unique-σ σ
-                        → binders-unique (⦇-⦈⟨ u , σ ⟩)
-      BUNEHole : ∀{u σ d} → binders-unique d
-                           → binders-unique-σ σ
-                           → binders-unique (⦇⌜ d ⌟⦈⟨ u , σ ⟩)
-      BUAp : ∀{d1 d2} → binders-unique d1
-                       → binders-unique d2
-                       → binders-disjoint d1 d2
-                       → binders-unique (d1 ∘ d2)
-      BUCast : ∀{d τ1 τ2} → binders-unique d
-                           → binders-unique (d ⟨ τ1 ⇒ τ2 ⟩)
-      BUFailedCast : ∀{d τ1 τ2} → binders-unique d
-                                 → binders-unique (d ⟨ τ1 ⇒⦇-⦈⇏ τ2 ⟩)
+      BULam : {x : Nat} {τ : htyp} {d : ihexp} →
+              binders-unique d →
+              unbound-in x d →
+              binders-unique (·λ_[_]_ x τ d)
+      BUEHole : ∀{u σ} →
+                binders-unique-σ σ →
+                binders-unique (⦇-⦈⟨ u , σ ⟩)
+      BUNEHole : ∀{u σ d} →
+                 binders-unique d →
+                 binders-unique-σ σ →
+                 binders-unique (⦇⌜ d ⌟⦈⟨ u , σ ⟩)
+      BUAp : ∀{d1 d2} →
+             binders-unique d1 →
+             binders-unique d2 →
+             binders-disjoint d1 d2 →
+             binders-unique (d1 ∘ d2)
+      BUCast : ∀{d τ1 τ2} →
+               binders-unique d →
+               binders-unique (d ⟨ τ1 ⇒ τ2 ⟩)
+      BUFailedCast : ∀{d τ1 τ2} →
+                     binders-unique d →
+                     binders-unique (d ⟨ τ1 ⇒⦇-⦈⇏ τ2 ⟩)

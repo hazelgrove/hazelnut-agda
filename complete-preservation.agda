@@ -14,7 +14,8 @@ module complete-preservation where
   cp-subst {x = y} (DCVar {x = x}) dc2 with natEQ x y
   cp-subst DCVar dc2 | Inl refl = dc2
   cp-subst DCVar dc2 | Inr x₂ = DCVar
-  cp-subst DCConst dc2 = DCConst
+  cp-subst DCNum dc2 = DCNum
+  cp-subst (DCPlus dc1 dc2) dc3 = DCPlus (cp-subst dc1 dc3) (cp-subst dc2 dc3)
   cp-subst {x = x} (DCLam {x = y} dc1 x₂) dc2 with natEQ y x
   cp-subst (DCLam dc1 x₃) dc2 | Inl refl = DCLam dc1 x₃
   cp-subst (DCLam dc1 x₃) dc2 | Inr x₂ = DCLam (cp-subst dc1 dc2) x₃
@@ -34,7 +35,14 @@ module complete-preservation where
              Δ , ∅ ⊢ d :: τ →
              d ↦ d' →
              d' dcomplete
-  cp-rhs dc TAConst (Step FHOuter () FHOuter)
+  cp-rhs dc TANum (Step FHOuter () FHOuter)
+  cp-rhs (DCPlus dc dc₁) (TAPlus wt wt₁) (Step FHOuter (ITPlus refl) FHOuter) = DCNum
+  cp-rhs (DCPlus dc dc₁) (TAPlus wt wt₁) (Step (FHPlus1 x) x₁ (FHPlus1 x₂))
+    with cp-rhs dc wt (Step x x₁ x₂)
+  ... | q = DCPlus q dc₁
+  cp-rhs (DCPlus dc dc₁) (TAPlus wt wt₁) (Step (FHPlus2 x) x₁ (FHPlus2 x₂))
+    with cp-rhs dc₁ wt₁ (Step x x₁ x₂)
+  ... | q = DCPlus dc q
   cp-rhs dc (TAVar x₁) stp = abort (somenotnone (! x₁))
   cp-rhs dc (TALam _ wt) (Step FHOuter () FHOuter)
   -- this case is a little more complicated than it feels like it ought to
