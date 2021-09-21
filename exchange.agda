@@ -8,9 +8,9 @@ module exchange where
   -- exchanging just two disequal elements produces the same context
   swap-little : {A : Set} {x y : Nat} {τ1 τ2 : A} → (x ≠ y) →
     ((■ (x , τ1)) ,, (y , τ2)) == ((■ (y , τ2)) ,, (x , τ1))
-  swap-little {A} {x} {y} {τ1} {τ2} neq = ∪comm (■ (x , τ1))
-                                                (■ (y , τ2))
-                                                (disjoint-singles neq)
+  swap-little {A} {x} {y} {τ1} {τ2} neq = ∪comm (■ (y , τ2))
+                                                (■ (x , τ1))
+                                                (disjoint-singles (flip neq))
 
   -- really the core of all the exchange arguments: contexts with two
   -- disequal elements exchanged are the same. we reassociate the unions,
@@ -23,11 +23,25 @@ module exchange where
   -- this pattern.
   swap : {A : Set} {x y : Nat} {τ1 τ2 : A} (Γ : A ctx) (x≠y : x == y → ⊥) →
          ((Γ ,, (x , τ1)) ,, (y , τ2)) == ((Γ ,, (y , τ2)) ,, (x , τ1))
-  swap {A} {x} {y} {τ1} {τ2} Γ neq =
-                        (∪assoc Γ (■ (x , τ1)) (■ (y , τ2)) (disjoint-singles neq) ) ·
-                        (ap1 (λ qq → Γ ∪ qq) (swap-little neq) ·
-                        ! (∪assoc Γ (■ (y , τ2)) (■ (x , τ1)) (disjoint-singles (flip neq))))
+  swap {A} {x} {y} {τ1} {τ2} Γ neq = funext eq
+    where
+      eq : (z : Nat) →  ((Γ ,, (x , τ1)) ,, (y , τ2)) z == ((Γ ,, (y , τ2)) ,, (x , τ1)) z
+      eq z with natEQ y z
+      ... | Inr y≠z with natEQ x z
+      ... | Inl refl = refl
+      ... | Inr x≠z with natEQ y z
+      ... | Inl refl = abort (y≠z refl)
+      ... | Inr y≠z' = refl
+      eq z | Inl refl with natEQ x z
+      ... | Inl refl = abort (neq refl)
+      ... | Inr x≠z with natEQ z z
+      ... | Inl refl = refl
+      ... | Inr z≠z = abort (z≠z refl)
 
+                       
+                        
+  -- (∪assoc Γ (■ (x , τ1)) (■ (y , τ2)) (disjoint-singles neq)) ·
+  --                       (ap1 (λ qq → Γ ∪ qq) (swap-little neq) ·
   -- the above exchange principle used via transport in the judgements we needed
   exchange-subst-Γ : ∀{Δ Γ x y τ1 τ2 σ Γ'} →
                    x ≠ y →

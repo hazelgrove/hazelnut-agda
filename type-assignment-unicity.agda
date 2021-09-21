@@ -18,6 +18,16 @@ module type-assignment-unicity where
   type-assignment-unicity (TAAp x x₁) (TAAp y y₁)
     with type-assignment-unicity x y
   ... | refl = refl
+  type-assignment-unicity (TAInl x) (TAInl y)
+    with type-assignment-unicity x y
+  ... | refl = refl
+  type-assignment-unicity (TAInr x) (TAInr y)
+    with type-assignment-unicity x y
+  ... | refl = refl
+  type-assignment-unicity (TACase d _ x _ y) (TACase d₁ _ x₁ _ y₁)
+    with type-assignment-unicity d d₁ 
+  ... | refl with type-assignment-unicity x x₁
+  ... | refl = refl
   type-assignment-unicity (TAEHole {Δ = Δ} x y) (TAEHole x₁ x₂)
     with ctxunicity {Γ = Δ} x x₁
   ... | refl = refl

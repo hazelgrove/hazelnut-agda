@@ -21,7 +21,7 @@ module elaboration-unicity where
     ... | ih1 , ih2 , ih3 = ap1 _ ih1  , ap1 _ ih2 , ih3
     elaboration-unicity-synth (ESAp _ _ x x₁ x₂ x₃) (ESAp _ _ x₄ x₅ x₆ x₇)
       with synthunicity x x₄
-    ... | refl with match-unicity x₁ x₅
+    ... | refl with ▸arr-unicity x₁ x₅
     ... | refl with elaboration-unicity-ana x₂ x₆
     ... | refl , refl , refl with elaboration-unicity-ana x₃ x₇
     ... | refl , refl , refl = refl , refl , refl
@@ -38,7 +38,7 @@ module elaboration-unicity where
                           Γ ⊢ e ⇐ τ ~> d2 :: τ2 ⊣ Δ2 →
                           d1 == d2 × τ1 == τ2 × Δ1 == Δ2
     elaboration-unicity-ana (EALam x₁ m D1) (EALam x₂ m2 D2)
-      with match-unicity m m2
+      with ▸arr-unicity m m2
     ... | refl with elaboration-unicity-ana D1 D2
     ... | refl , refl , refl = refl , refl , refl
     elaboration-unicity-ana (EALam x₁ m D1) (EASubsume x₂ x₃ () x₅)
@@ -53,4 +53,18 @@ module elaboration-unicity where
     elaboration-unicity-ana (EANEHole _ x) (EASubsume x₁ x₂ x₃ x₄) = abort (x₂ _ _ refl)
     elaboration-unicity-ana (EANEHole _ x) (EANEHole _ x₁)
       with elaboration-unicity-synth x x₁
+    ... | refl , refl , refl = refl , refl , refl
+    elaboration-unicity-ana (EAInl x x₁) (EAInl y y₁)
+      with ▸sum-unicity x y 
+    ... | refl with elaboration-unicity-ana x₁ y₁
+    ... | refl , refl , refl = refl , refl , refl
+    elaboration-unicity-ana (EAInr x x₁) (EAInr y y₁)
+      with ▸sum-unicity x y 
+    ... | refl with elaboration-unicity-ana x₁ y₁
+    ... | refl , refl , refl = refl , refl , refl
+    elaboration-unicity-ana (EACase x x₁ x₂ x₃ x₄ x₅ x₆ x₇ x₈ x₉ x₁₀ x₁₁) (EACase y y₁ y₂ y₃ y₄ y₅ y₆ y₇ y₈ y₉ y₁₀ y₁₁)
+      with elaboration-unicity-synth x₈ y₈
+    ... | refl , refl , refl with ▸sum-unicity x₉ y₉
+    ... | refl with elaboration-unicity-ana x₁₀ y₁₀
+    ... | refl , refl , refl with elaboration-unicity-ana x₁₁ y₁₁
     ... | refl , refl , refl = refl , refl , refl

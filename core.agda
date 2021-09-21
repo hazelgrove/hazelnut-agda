@@ -75,7 +75,7 @@ module core where
   -- type inconsistency
   _~̸_ : htyp → htyp → Set
   t1 ~̸ t2 = (t1 ~ t2) → ⊥
-
+  
   -- matching for arrows
   data _▸arr_ : htyp → htyp → Set where
     MAHole : ⦇-⦈ ▸arr ⦇-⦈ ==> ⦇-⦈
@@ -86,70 +86,6 @@ module core where
     MSHole : ⦇-⦈ ▸sum ⦇-⦈ ⊕ ⦇-⦈
     MSSum  : {τ1 τ2 : htyp} → τ1 ⊕ τ2 ▸sum τ1 ⊕ τ2
     
-  mutual
-    -- types τ1 and τ2 join consistently, forming type τ3
-    data _join_==_ : htyp → htyp → htyp → Set where
-      TJRefl  : {τ : htyp} → τ join τ == τ
-      TJHole1 : {τ : htyp} → τ join ⦇-⦈ == τ
-      TJHole2 : {τ : htyp} → ⦇-⦈ join τ == τ
-      TJArr   : {τ1 τ2 τ1' τ2' τ3 τ4 : htyp} →
-                τ1 meet τ1' == τ3 →
-                τ2 join τ2' == τ4 →
-                (τ1 ==> τ2) join (τ1' ==> τ2') == (τ3 ==> τ4)
-      TJSum   : {τ1 τ2 τ1' τ2' τ3 τ4 : htyp} →
-                τ1 join τ1' == τ3 →
-                τ2 join τ2' == τ4 →
-                (τ1 ⊕ τ2) join (τ1' ⊕ τ2') == (τ3 ⊕ τ4)
-      
-    -- types τ1 and τ2 meet consistently, forming type τ3
-    data _meet_==_ : htyp → htyp → htyp → Set where
-      TMRefl  : {τ : htyp} → τ meet τ == τ
-      TMHole1 : {τ : htyp} → τ meet ⦇-⦈ == ⦇-⦈
-      TMHole2 : {τ : htyp} → ⦇-⦈ meet τ == ⦇-⦈
-      TMArr   : {τ1 τ2 τ1' τ2' τ3 τ4 : htyp} →
-                τ1 join τ1' == τ3 →
-                τ2 meet τ2' == τ4 →
-                (τ1 ==> τ2) meet (τ1' ==> τ2') == (τ3 ==> τ4)
-      TMSum   : {τ1 τ2 τ1' τ2' τ3 τ4 : htyp} →
-                τ1 meet τ1' == τ3 →
-                τ2 meet τ2' == τ4 →
-                (τ1 ⊕ τ2) meet (τ1' ⊕ τ2') == (τ3 ⊕ τ4)
-
-  mutual
-    -- we can only take the join of consistent types, and each of
-    -- the types is consistent with their join
-    join-consistency : ∀{τ1 τ2 τ} →
-                     τ1 join τ2 == τ →
-                     (τ1 ~ τ2) × (τ1 ~ τ) × (τ2 ~ τ)
-    join-consistency TJRefl = TCRefl , TCRefl , TCRefl
-    join-consistency TJHole1 = TCHole1 , TCRefl , TCHole2
-    join-consistency TJHole2 = TCHole2 , TCHole2 , TCRefl
-    join-consistency (TJArr m j)
-      with meet-consistency m | join-consistency j
-    ... | t1~t1' , t1~t3 , t1'~t3 | t2~t2' , t2~t4 , t2'~t4 =
-      TCArr t1~t1' t2~t2' , TCArr t1~t3 t2~t4 , TCArr t1'~t3 t2'~t4
-    join-consistency (TJSum j1 j2)
-      with join-consistency j1 | join-consistency j2
-    ... | t1~t1' , t1~t3 , t1'~t3 | t2~t2' , t2~t4 , t2'~t4 =
-      TCSum t1~t1' t2~t2' , TCSum t1~t3 t2~t4 , TCSum t1'~t3 t2'~t4
-
-    -- we can only take the meet of consistent types, and each of
-    -- the types is consistent with their meet
-    meet-consistency : ∀{τ1 τ2 τ} →
-                     τ1 meet τ2 == τ →
-                     (τ1 ~ τ2) × (τ1 ~ τ) × (τ2 ~ τ)
-    meet-consistency TMRefl = TCRefl , TCRefl , TCRefl
-    meet-consistency TMHole1 = TCHole1 , TCHole1 , TCRefl
-    meet-consistency TMHole2 = TCHole2 , TCRefl , TCHole1
-    meet-consistency (TMArr j m)
-      with join-consistency j | meet-consistency m
-    ... | t1~t1' , t1~t3 , t1'~t3 | t2~t2' , t2~t4 , t2'~t4 =
-      TCArr t1~t1' t2~t2' , TCArr t1~t3 t2~t4 , TCArr t1'~t3 t2'~t4
-    meet-consistency (TMSum m1 m2)
-      with meet-consistency m1 | meet-consistency m2
-    ... | t1~t1' , t1~t3 , t1'~t3 | t2~t2' , t2~t4 , t2'~t4 =
-      TCSum t1~t1' t2~t2' , TCSum t1~t3 t2~t4 , TCSum t1'~t3 t2'~t4
-      
   -- the type of hole contexts, i.e. Δs in the judgements
   hctx : Set
   hctx = (htyp ctx × htyp) ctx
@@ -282,22 +218,25 @@ module core where
                  τ ▸arr τ1 ==> τ2 →
                  (Γ ,, (x , τ1)) ⊢ e <= τ2 →
                  Γ ⊢ (·λ x e) <= τ
-      AInl     : {Γ : tctx} {e : hexp} {t+ t1 t2 : htyp} →
-                 t+ ▸sum (t1 ⊕ t2) →
-                 Γ ⊢ e <= t1 →
-                 Γ ⊢ inl e <= t+
-      AInr     : {Γ : tctx} {e : hexp} {t+ t1 t2 : htyp} →
-                 t+ ▸sum (t1 ⊕ t2) →
-                 Γ ⊢ e <= t2 →
-                 Γ ⊢ inr e <= t+
-      ACase    : {Γ : tctx} {e e1 e2 : hexp} {t t+ t1 t2 : htyp} {x y : Nat} →
+      AInl     : {Γ : tctx} {e : hexp} {τ+ τ1 τ2 : htyp} →
+                 τ+ ▸sum (τ1 ⊕ τ2) →
+                 Γ ⊢ e <= τ1 →
+                 Γ ⊢ inl e <= τ+
+      AInr     : {Γ : tctx} {e : hexp} {τ+ τ1 τ2 : htyp} →
+                 τ+ ▸sum (τ1 ⊕ τ2) →
+                 Γ ⊢ e <= τ2 →
+                 Γ ⊢ inr e <= τ+
+      ACase    : {Γ : tctx} {e e1 e2 : hexp} {τ τ+ τ1 τ2 : htyp} {x y : Nat} →
+                 holes-disjoint e e1 →
+                 holes-disjoint e e2 →
+                 holes-disjoint e1 e2 →
                  x # Γ →
                  y # Γ →
-                 t+ ▸sum (t1 ⊕ t2) →
-                 Γ ⊢ e => t+ →
-                 (Γ ,, (x , t1)) ⊢ e1 <= t →
-                 (Γ ,, (y , t2)) ⊢ e2 <= t →
-                 Γ ⊢ case e x e1 y e2 <= t
+                 τ+ ▸sum (τ1 ⊕ τ2) →
+                 Γ ⊢ e => τ+ →
+                 (Γ ,, (x , τ1)) ⊢ e1 <= τ →
+                 (Γ ,, (y , τ2)) ⊢ e2 <= τ →
+                 Γ ⊢ case e x e1 y e2 <= τ
                  
   -- those types without holes
   data _tcomplete : htyp → Set where
@@ -406,21 +345,22 @@ module core where
                τ ▸sum τ1 ⊕ τ2 →
                Γ ⊢ e ⇐ τ2 ~> d :: τ2' ⊣ Δ →
                Γ ⊢ inr e ⇐ τ ~> inr τ1 d :: τ1 ⊕ τ2' ⊣ Δ
-      EACase : ∀{Γ e τ+ d Δ τ1 τ2 τ x e1 d1 τr1 Δ1 y e2 d2 τr2 Δ2 τr} →
+      EACase : ∀{Γ e τ+ d Δ τ1 τ2 τ x e1 d1 τr1 Δ1 y e2 d2 τr2 Δ2} →
                holes-disjoint e e1 →
                holes-disjoint e e2 →
                holes-disjoint e1 e2 →
                Δ ## Δ1 →
                Δ ## Δ2 →
                Δ1 ## Δ2 →
+               x # Γ →
+               y # Γ →
                Γ ⊢ e ⇒ τ+ ~> d ⊣ Δ →
                τ+ ▸sum τ1 ⊕ τ2 →
                (Γ ,, (x , τ1)) ⊢ e1 ⇐ τ ~> d1 :: τr1 ⊣ Δ1 →
                (Γ ,, (y , τ2)) ⊢ e2 ⇐ τ ~> d2 :: τr2 ⊣ Δ2 →
-               τr1 join τr2 == τr →
                Γ ⊢ case e x e1 y e2 ⇐ τ ~> case (d ⟨ τ+ ⇒ τ1 ⊕ τ2 ⟩)
-                                                x (d1 ⟨ τr1 ⇒ τr ⟩)
-                                                y (d2 ⟨ τr2 ⇒ τr ⟩) :: τr ⊣ ((Δ ∪ Δ1) ∪ Δ2)
+                                                x (d1 ⟨ τr1 ⇒ τ ⟩)
+                                                y (d2 ⟨ τr2 ⇒ τ ⟩) :: τ ⊣ (Δ ∪ (Δ1 ∪ Δ2))
       EASubsume : ∀{e Γ τ' d Δ τ} →
                   ((u : Nat) → e ≠ ⦇-⦈[ u ]) →
                   ((e' : hexp) (u : Nat) → e ≠ ⦇⌜ e' ⌟⦈[ u ]) →
@@ -476,7 +416,9 @@ module core where
                 Δ , Γ ⊢ inr τ1 d :: τ1 ⊕ τ2
       TACase  : ∀{Δ Γ d τ1 τ2 τ x d1 y d2} →
                 Δ , Γ ⊢ d :: τ1 ⊕ τ2 →
+                x # Γ →
                 Δ , (Γ ,, (x , τ1)) ⊢ d1 :: τ →
+                y # Γ →
                 Δ , (Γ ,, (y , τ2)) ⊢ d2 :: τ →
                 Δ , Γ ⊢ case d x d1 y d2 :: τ
       TAEHole : ∀{Δ Γ σ u Γ' τ} →
@@ -661,6 +603,12 @@ module core where
               -- d final → -- red brackets
               ε evalctx →
               (d ∘₂ ε) evalctx
+    ECInl   : ∀{τ ε} →
+              ε evalctx →
+              (inl τ ε) evalctx
+    ECInr   : ∀{τ ε} →
+              ε evalctx →
+              (inr τ ε) evalctx
     ECCase  : ∀{ε x d1 y d2} →
               ε evalctx →
               (case ε x d1 y d2) evalctx
@@ -676,21 +624,27 @@ module core where
 
   -- d is the result of filling the hole in ε with d'
   data _==_⟦_⟧ : (d : ihexp) (ε : ectx) (d' : ihexp) → Set where
-    FHOuter : ∀{d} → d == ⊙ ⟦ d ⟧
-    FHPlus1 : ∀{d1 d1' d2 ε} →
-              d1 == ε ⟦ d1' ⟧ →
-              (d1 ·+ d2) == (ε ·+₁ d2) ⟦ d1' ⟧
-    FHPlus2 : ∀{d1 d2 d2' ε} →
-              -- d1 final → -- red brackets
-              d2 == ε ⟦ d2' ⟧ →
-              (d1 ·+ d2) == (d1 ·+₂ ε) ⟦ d2' ⟧
-    FHAp1   : ∀{d1 d1' d2 ε} →
-              d1 == ε ⟦ d1' ⟧ →
-              (d1 ∘ d2) == (ε ∘₁ d2) ⟦ d1' ⟧
+    FHOuter  : ∀{d} → d == ⊙ ⟦ d ⟧
+    FHPlus1  : ∀{d1 d1' d2 ε} →
+               d1 == ε ⟦ d1' ⟧ →
+               (d1 ·+ d2) == (ε ·+₁ d2) ⟦ d1' ⟧
+    FHPlus2  : ∀{d1 d2 d2' ε} →
+               -- d1 final → -- red brackets
+               d2 == ε ⟦ d2' ⟧ →
+               (d1 ·+ d2) == (d1 ·+₂ ε) ⟦ d2' ⟧
+    FHAp1    : ∀{d1 d1' d2 ε} →
+               d1 == ε ⟦ d1' ⟧ →
+               (d1 ∘ d2) == (ε ∘₁ d2) ⟦ d1' ⟧
     FHAp2    : ∀{d1 d2 d2' ε} →
                -- d1 final → -- red brackets
                d2 == ε ⟦ d2' ⟧ →
                (d1 ∘ d2) == (d1 ∘₂ ε) ⟦ d2' ⟧
+    FHInl    : ∀{d d' ε τ} →
+               d == ε ⟦ d' ⟧ →
+               (inl τ d) == (inl τ ε) ⟦ d' ⟧
+    FHInr    : ∀{d d' ε τ} →
+               d == ε ⟦ d' ⟧ →
+               (inr τ d) == (inr τ ε) ⟦ d' ⟧
     FHCase   : ∀{d d' x d1 y d2 ε} →
                d == ε ⟦ d' ⟧ →
                (case d x d1 y d2) == (case ε x d1 y d2) ⟦ d' ⟧
@@ -810,9 +764,9 @@ module core where
     FRHLam1   : ∀{x y e} → x ≠ y → freshh x e → freshh x (·λ y e)
     FRHLam2   : ∀{x τ e y} → x ≠ y → freshh x e → freshh x (·λ y [ τ ] e)
     FRHAp     : ∀{x e1 e2} → freshh x e1 → freshh x e2 → freshh x (e1 ∘ e2)
-    FInl      : ∀{x d} → freshh x d → freshh x (inl d)
-    FInr      : ∀{x d} → freshh x d → freshh x (inr d)
-    FCase     : ∀{x d y d1 z d2} → freshh x d → x ≠ y → freshh x d1 → x ≠ z → freshh x d2 →
+    FRHInl    : ∀{x d} → freshh x d → freshh x (inl d)
+    FRHInr    : ∀{x d} → freshh x d → freshh x (inr d)
+    FRHCase   : ∀{x d y d1 z d2} → freshh x d → x ≠ y → freshh x d1 → x ≠ z → freshh x d2 →
                 freshh x (case d y d1 z d2)
     FRHEHole  : ∀{x u} → freshh x (⦇-⦈[ u ])
     FRHNEHole : ∀{x u e} → freshh x e → freshh x (⦇⌜ e ⌟⦈[ u ])
@@ -874,8 +828,9 @@ module core where
     data binders-disjoint-σ : env → ihexp → Set where
       BDσId    : ∀{Γ d} → binders-disjoint-σ (Id Γ) d
       BDσSubst : ∀{d1 d2 y σ} →
-                 binders-disjoint d1 d2 →
+                 binders-disjoint d2 d1 →
                  binders-disjoint-σ σ d2 →
+                 unbound-in y d2 →
                  binders-disjoint-σ (Subst d1 y σ) d2
 
     -- two terms that do not share any binders

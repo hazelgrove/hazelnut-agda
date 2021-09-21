@@ -12,9 +12,9 @@ module cast-inert where
   -- if a term is compelete and well typed, then the casts inside are all
   -- identity casts and there are no failed casts
   cast-inert : ∀{Δ Γ d τ} →
-                  d dcomplete →
-                  Δ , Γ ⊢ d :: τ →
-                  cast-id d
+               d dcomplete →
+               Δ , Γ ⊢ d :: τ →
+               cast-id d
   cast-inert dc TANum = CINum
   cast-inert (DCPlus dc dc₁) (TAPlus wt wt₁) = CIPlus (cast-inert dc wt) (cast-inert dc₁ wt₁)
   cast-inert dc (TAVar x₁) = CIVar
@@ -26,7 +26,11 @@ module cast-inert where
     with complete-consistency x₂ x x₁
   ... | refl = CICast (cast-inert dc wt)
   cast-inert () (TAFailedCast wt x x₁ x₂)
-
+  cast-inert (DCInl x dc) (TAInl wt) = CIInl (cast-inert dc wt)
+  cast-inert (DCInr x dc) (TAInr wt) = CIInr (cast-inert dc wt)
+  cast-inert (DCCase dc dc₁ dc₂) (TACase wt x wt₁ x₁ wt₂) =
+    CICase (cast-inert dc wt) (cast-inert dc₁ wt₁) (cast-inert dc₂ wt₂)
+    
   -- in a well typed complete internal expression, every cast is the
   -- identity cast.
   complete-casts : ∀{Γ Δ d τ1 τ2} →

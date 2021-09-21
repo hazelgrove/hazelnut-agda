@@ -50,38 +50,69 @@ module progress where
   progress (TAAp wt1 wt2)
     with progress wt1 | progress wt2
     -- if the left steps, the whole thing steps
-  progress (TAAp wt1 wt2) | S (_ , Step x y z) | _ = S (_ , Step (FHAp1 x) y (FHAp1 z))
+  ... | S (_ , Step x y z) | _ = S (_ , Step (FHAp1 x) y (FHAp1 z))
     -- if the left is indeterminate, step the right
-  progress (TAAp wt1 wt2) | I i | S (_ , Step x y z) = S (_ , Step (FHAp2 x) y (FHAp2  z))
+  ... | I i | S (_ , Step x y z) = S (_ , Step (FHAp2 x) y (FHAp2  z))
     -- if they're both indeterminate, step when the cast steps and indet otherwise
-  progress (TAAp wt1 wt2) | I x | I x₁
+  ... | I x | I y
     with canonical-indeterminate-forms-arr wt1 x
-  progress (TAAp wt1 wt2) | I x | I y | CIFACast (_ , _ , _ , _ , _ , refl , _ , _ ) = S (_ , Step FHOuter ITApCast FHOuter)
-  progress (TAAp wt1 wt2) | I x | I y | CIFAEHole (_ , _ , _ , refl , _)             = I (IAp (λ _ _ _ _ _ ()) x (FIndet y))
-  progress (TAAp wt1 wt2) | I x | I y | CIFANEHole (_ , _ , _ , _ , _ , refl , _)    = I (IAp (λ _ _ _ _ _ ()) x (FIndet y))
-  progress (TAAp wt1 wt2) | I x | I y | CIFAAp (_ , _ , _ , _ , _ , refl , _)        = I (IAp (λ _ _ _ _ _ ()) x (FIndet y))
-  progress (TAAp wt1 wt2) | I x | I y | CIFACastHole (_ , refl , refl , refl , _ )   = I (IAp (λ _ _ _ _ _ ()) x (FIndet y))
-  progress (TAAp wt1 wt2) | I x | I y | CIFAFailedCast (_ , _ , refl , _ )           = I (IAp (λ _ _ _ _ _ ()) x (FIndet y))
-    -- similar if the left is indetermiante but the right is a boxed val
-  progress (TAAp wt1 wt2) | I x | BV x₁
+  ... | CIFACast (_ , _ , _ , _ , _ , refl , _ , _ ) = S (_ , Step FHOuter ITApCast FHOuter)
+  ... | CIFAEHole (_ , _ , _ , refl , _)             = I (IAp (λ _ _ _ _ _ ()) x (FIndet y))
+  ... | CIFANEHole (_ , _ , _ , _ , _ , refl , _)    = I (IAp (λ _ _ _ _ _ ()) x (FIndet y))
+  ... | CIFAAp (_ , _ , _ , _ , _ , refl , _)        = I (IAp (λ _ _ _ _ _ ()) x (FIndet y))
+  ... | CIFACastHole (_ , refl , refl , refl , _ )   = I (IAp (λ _ _ _ _ _ ()) x (FIndet y))
+  ... | CIFAFailedCast (_ , _ , refl , _ )           = I (IAp (λ _ _ _ _ _ ()) x (FIndet y))
+  ... | CIFACase (_ , _ , _ , _ , _ , _ , _ , refl , _ ) = I (IAp (λ _ _ _ _ _ ()) x (FIndet y))
+    -- similar if the left is indeterminate but the right is a boxed val
+  progress (TAAp wt1 wt2) | I x | BV y
     with canonical-indeterminate-forms-arr wt1 x
-  progress (TAAp wt1 wt2) | I x | BV y | CIFACast (_ , _ , _ , _ , _ , refl , _ , _ ) = S (_ , Step FHOuter ITApCast FHOuter)
-  progress (TAAp wt1 wt2) | I x | BV y | CIFAEHole (_ , _ , _ , refl , _)             = I (IAp (λ _ _ _ _ _ ()) x (FBoxedVal y))
-  progress (TAAp wt1 wt2) | I x | BV y | CIFANEHole (_ , _ , _ , _ , _ , refl , _)    = I (IAp (λ _ _ _ _ _ ()) x (FBoxedVal y))
-  progress (TAAp wt1 wt2) | I x | BV y | CIFAAp (_ , _ , _ , _ , _ , refl , _)        = I (IAp (λ _ _ _ _ _ ()) x (FBoxedVal y))
-  progress (TAAp wt1 wt2) | I x | BV y | CIFACastHole (_ , refl , refl , refl , _ )   = I (IAp (λ _ _ _ _ _ ()) x (FBoxedVal y))
-  progress (TAAp wt1 wt2) | I x | BV y | CIFAFailedCast (_ , _ , refl , _ )           = I (IAp (λ _ _ _ _ _ ()) x (FBoxedVal y))
+  ... | CIFACast (_ , _ , _ , _ , _ , refl , _ , _ ) = S (_ , Step FHOuter ITApCast FHOuter)
+  ... | CIFAEHole (_ , _ , _ , refl , _)             = I (IAp (λ _ _ _ _ _ ()) x (FBoxedVal y))
+  ... | CIFANEHole (_ , _ , _ , _ , _ , refl , _)    = I (IAp (λ _ _ _ _ _ ()) x (FBoxedVal y))
+  ... | CIFAAp (_ , _ , _ , _ , _ , refl , _)        = I (IAp (λ _ _ _ _ _ ()) x (FBoxedVal y))
+  ... | CIFACastHole (_ , refl , refl , refl , _ )   = I (IAp (λ _ _ _ _ _ ()) x (FBoxedVal y))
+  ... | CIFAFailedCast (_ , _ , refl , _ )           = I (IAp (λ _ _ _ _ _ ()) x (FBoxedVal y))
+  ... | CIFACase (_ , _ , _ , _ , _ , _ , _ , refl , _ ) = I (IAp (λ _ _ _ _ _ ()) x (FBoxedVal y))
     -- if the left is a boxed value, inspect the right
   progress (TAAp wt1 wt2) | BV v | S (_ , Step x y z) = S (_ , Step (FHAp2  x) y (FHAp2  z))
   progress (TAAp wt1 wt2) | BV v | I i
     with canonical-boxed-forms-arr wt1 v
-  ... | CBFLam (_ , _ , refl , _)             = S (_ , Step FHOuter ITLam FHOuter)
-  ... | CBFCastArr (_ , _ , _ , refl , _ , _) = S (_ , Step FHOuter ITApCast FHOuter)
+  ... | CBFALam (_ , _ , refl , _)             = S (_ , Step FHOuter ITLam FHOuter)
+  ... | CBFACastArr (_ , _ , _ , refl , _ , _) = S (_ , Step FHOuter ITApCast FHOuter)
   progress (TAAp wt1 wt2) | BV v | BV v₂
     with canonical-boxed-forms-arr wt1 v
-  ... | CBFLam (_ , _ , refl , _)             = S (_ , Step FHOuter ITLam FHOuter)
-  ... | CBFCastArr (_ , _ , _ , refl , _ , _) = S (_ , Step FHOuter ITApCast FHOuter)
+  ... | CBFALam (_ , _ , refl , _)             = S (_ , Step FHOuter ITLam FHOuter)
+  ... | CBFACastArr (_ , _ , _ , refl , _ , _) = S (_ , Step FHOuter ITApCast FHOuter)
 
+  progress (TAInl wt)
+    with progress wt
+  ... | S (_ , Step x y z) = S (_ , Step (FHInl x) y (FHInl z))
+  ... | I x = I (IInl x)
+  ... | BV x = BV (BVInl x)
+  progress (TAInr wt)
+    with progress wt
+  ... | S (_ , Step x y z) = S (_ , Step (FHInr x) y (FHInr z))
+  ... | I x = I (IInr x)
+  ... | BV x = BV (BVInr x)
+  progress (TACase wt _ wt₁ _ wt₂)
+    with progress wt
+  ... | S (_ , Step x y z)  = S (_ , Step (FHCase x) y (FHCase z))
+  ... | BV (BVVal (VInl x)) = S (_ , Step FHOuter ITCaseInl FHOuter)
+  ... | BV (BVVal (VInr x)) = S (_ , Step FHOuter ITCaseInr FHOuter)
+  ... | BV (BVInl x)        = S (_ , Step FHOuter ITCaseInl FHOuter)
+  ... | BV (BVInr x)        = S (_ , Step FHOuter ITCaseInr FHOuter)
+  ... | BV (BVSumCast x x₁) = S (_ , Step FHOuter ITCaseCast FHOuter)
+  ... | I (IAp x x₁ x₂) = I (ICase (λ _ _ ()) (λ _ _ ()) (λ _ _ _ _ _ ()) (IAp x x₁ x₂))
+  ... | I (IInl x) = S (_ , Step FHOuter ITCaseInl FHOuter)
+  ... | I (IInr x) = S (_ , Step FHOuter ITCaseInr FHOuter)
+  ... | I (ICase x x₁ x₂ x₃) = I (ICase (λ _ _ ()) (λ _ _ ()) (λ _ _ _ _ _ ()) (ICase x x₁ x₂ x₃))
+  ... | I IEHole = I (ICase (λ _ _ ()) (λ _ _ ()) (λ _ _ _ _ _ ()) IEHole)
+  ... | I (INEHole x) = I (ICase (λ _ _ ()) (λ _ _ ()) (λ _ _ _ _ _ ()) (INEHole x))
+  ... | I (ICastSum x x₁) = S (_ , Step FHOuter ITCaseCast FHOuter)
+  ... | I (ICastHoleGround x x₁ x₂) = I (ICase (λ _ _ ()) (λ _ _ ()) (λ _ _ _ _ _ ()) (ICastHoleGround x x₁ x₂))
+  ... | I (IFailedCast x x₁ x₂ x₃) = I (ICase (λ _ _ ()) (λ _ _ ()) (λ _ _ _ _ _ ()) (IFailedCast x x₁ x₂ x₃))
+  
+  
     -- empty holes are indeterminate
   progress (TAEHole _ _ ) = I IEHole
 
@@ -96,80 +127,117 @@ module progress where
   progress (TACast wt con)
     with progress wt
     -- step if the innards step
-  progress (TACast wt con) | S (_ , Step x y z) = S (_ , Step (FHCast x) y (FHCast z))
+  ... | S (_ , Step x y z) = S (_ , Step (FHCast x) y (FHCast z))
     -- if indet, inspect how the types in the cast are realted by consistency:
     -- if they're the same, step by ID
   progress (TACast wt TCRefl)  | I x = S (_ , Step FHOuter ITCastID FHOuter)
     -- if first type is hole
   progress (TACast {τ1 = τ1} wt TCHole1) | I x
     with τ1
-  progress (TACast wt TCHole1) | I x | num = I (ICastGroundHole GNum x)
-  progress (TACast wt TCHole1) | I x | ⦇-⦈ = S (_ , Step FHOuter ITCastID FHOuter)
-  progress (TACast wt TCHole1) | I x | τ11 ==> τ12
+  ... | num = I (ICastGroundHole GNum x)
+  ... | ⦇-⦈ = S (_ , Step FHOuter ITCastID FHOuter)
+  ... | τ11 ==> τ12
     with ground-decidable (τ11 ==> τ12)
-  progress (TACast wt TCHole1) | I x₁ | .⦇-⦈ ==> .⦇-⦈ | Inl GHole = I (ICastGroundHole GHole x₁)
-  progress (TACast wt TCHole1) | I x₁ | τ11 ==> τ12 | Inr x =  S (_ , Step FHOuter (ITGround (MGArr (ground-arr-not-hole x))) FHOuter)
+  ... | Inl GArrHole = I (ICastGroundHole GArrHole x)
+  ... | Inr y =  S (_ , Step FHOuter (ITGround (MGArr (π1 (ground-not-holes y)))) FHOuter)
+  progress (TACast {τ1 = τ1} wt TCHole1) | I x | τ11 ⊕ τ12
+    with ground-decidable (τ11 ⊕ τ12)
+  ... | Inl GSumHole = I (ICastGroundHole GSumHole x)
+  ... | Inr y =  S (_ , Step FHOuter (ITGround (MGSum (π2 (ground-not-holes y)))) FHOuter)
     -- if second type is hole
   progress (TACast wt (TCHole2 {num})) | I x
     with canonical-indeterminate-forms-hole wt x
-  progress (TACast wt (TCHole2 {num})) | I x | CIFHEHole (_ , _ , _ , refl , f)           = I (ICastHoleGround (λ _ _ ()) x GNum)
-  progress (TACast wt (TCHole2 {num})) | I x | CIFHNEHole (_ , _ , _ , _ , _ , refl , _ ) = I (ICastHoleGround (λ _ _ ()) x GNum)
-  progress (TACast wt (TCHole2 {num})) | I x | CIFHAp (_ , _ , _ , refl , _ )             = I (ICastHoleGround (λ _ _ ()) x GNum)
-  progress (TACast wt (TCHole2 {num})) | I x | CIFHCast (_ , τ , refl , _)
+  ... | CIFHEHole (_ , _ , _ , refl , f)           = I (ICastHoleGround (λ _ _ ()) x GNum)
+  ... | CIFHNEHole (_ , _ , _ , _ , _ , refl , _ ) = I (ICastHoleGround (λ _ _ ()) x GNum)
+  ... | CIFHAp (_ , _ , _ , refl , _ )             = I (ICastHoleGround (λ _ _ ()) x GNum)
+  ... | CIFHCase (_ , _ , _ , _ , _ , _ , _ , refl , _ ) = I (ICastHoleGround (λ _ _ ()) x GNum)
+  ... | CIFHCast (_ , τ , refl , _ , grn , _)
     with htype-dec τ num
-  progress (TACast wt (TCHole2 {num})) | I x₁ | CIFHCast (_ , .num , refl , _ , grn , _) | Inl refl = S (_ , Step FHOuter (ITCastSucceed grn ) FHOuter)
-  progress (TACast wt (TCHole2 {num})) | I x₁ | CIFHCast (_ , _ , refl , π2 , grn , _)  | Inr x =    S (_ , Step FHOuter (ITCastFail grn GNum x) FHOuter)
+  ... | Inl refl = S (_ , Step FHOuter (ITCastSucceed grn ) FHOuter)
+  ... | Inr y    = S (_ , Step FHOuter (ITCastFail grn GNum y) FHOuter)
   progress (TACast wt (TCHole2 {⦇-⦈}))| I x = S (_ , Step FHOuter ITCastID FHOuter)
   progress (TACast wt (TCHole2 {τ11 ==> τ12})) | I x
     with ground-decidable (τ11 ==> τ12)
-  progress (TACast wt (TCHole2 {.⦇-⦈ ==> .⦇-⦈})) | I x₁ | Inl GHole
-    with canonical-indeterminate-forms-hole wt x₁
-  progress (TACast wt (TCHole2 {.⦇-⦈ ==> .⦇-⦈})) | I x | Inl GHole | CIFHEHole (_ , _ , _ , refl , _)          = I (ICastHoleGround (λ _ _ ()) x GHole)
-  progress (TACast wt (TCHole2 {.⦇-⦈ ==> .⦇-⦈})) | I x | Inl GHole | CIFHNEHole (_ , _ , _ , _ , _ , refl , _) = I (ICastHoleGround (λ _ _ ()) x GHole)
-  progress (TACast wt (TCHole2 {.⦇-⦈ ==> .⦇-⦈})) | I x | Inl GHole | CIFHAp (_ , _ , _ , refl , _ )            = I (ICastHoleGround (λ _ _ ()) x GHole)
-  progress (TACast wt (TCHole2 {.⦇-⦈ ==> .⦇-⦈})) | I x | Inl GHole | CIFHCast (_ , ._ , refl , _ , GNum , _)  = S (_ , Step FHOuter (ITCastFail GNum GHole (λ ())) FHOuter )
-  progress (TACast wt (TCHole2 {.⦇-⦈ ==> .⦇-⦈})) | I x | Inl GHole | CIFHCast (_ , ._ , refl , _ , GHole , _)  = S (_ , Step FHOuter (ITCastSucceed GHole) FHOuter)
-  progress (TACast wt (TCHole2 {τ11 ==> τ12})) | I x₁ | Inr x = S (_ , Step FHOuter (ITExpand (MGArr (ground-arr-not-hole x))) FHOuter)
+  ... | Inr y = S (_ , Step FHOuter (ITExpand (MGArr (π1 (ground-not-holes y)))) FHOuter)
+  ... | Inl GArrHole
+    with canonical-indeterminate-forms-hole wt x
+  ... | CIFHEHole (_ , _ , _ , refl , _)            = I (ICastHoleGround (λ _ _ ()) x GArrHole)
+  ... | CIFHNEHole (_ , _ , _ , _ , _ , refl , _)   = I (ICastHoleGround (λ _ _ ()) x GArrHole)
+  ... | CIFHAp (_ , _ , _ , refl , _ )              = I (ICastHoleGround (λ _ _ ()) x GArrHole)
+  ... | CIFHCast (_ , ._ , refl , _ , GNum , _)     = S (_ , Step FHOuter (ITCastFail GNum GArrHole (λ ())) FHOuter)
+  ... | CIFHCast (_ , ._ , refl , _ , GArrHole , _) = S (_ , Step FHOuter (ITCastSucceed GArrHole) FHOuter)
+  ... | CIFHCast (_ , _ , refl , _ , GSumHole , _)  = S (_ , Step FHOuter (ITCastFail GSumHole GArrHole (λ ())) FHOuter)
+  ... | CIFHCase (_ , _ , _ , _ , _ , _ , _ , refl , _ ) = I (ICastHoleGround (λ _ _ ()) x GArrHole)
+  progress (TACast wt (TCHole2 {τ11 ⊕ τ12})) | I x
+    with ground-decidable (τ11 ⊕ τ12)
+  ... | Inr y = S (_ , Step FHOuter (ITExpand (MGSum (π2 (ground-not-holes y)))) FHOuter)
+  ... | Inl GSumHole
+    with canonical-indeterminate-forms-hole wt x
+  ... | CIFHEHole (_ , _ , _ , refl , _)           = I (ICastHoleGround (λ _ _ ()) x GSumHole)
+  ... | CIFHNEHole (_ , _ , _ , _ , _ , refl , _)  = I (ICastHoleGround (λ _ _ ()) x GSumHole)
+  ... | CIFHAp (_ , _ , _ , refl , _ )             = I (ICastHoleGround (λ _ _ ()) x GSumHole)
+  ... | CIFHCase (_ , _ , _ , _ , _ , _ , _ , refl , _ ) = I (ICastHoleGround (λ _ _ ()) x GSumHole)
+  ... | CIFHCast (_ , _ , refl , _ , GNum , _)     = S (_ , Step FHOuter (ITCastFail GNum GSumHole (λ ())) FHOuter)
+  ... | CIFHCast (_ , _ , refl , _ , GArrHole , _) = S (_ , Step FHOuter (ITCastFail GArrHole GSumHole (λ ())) FHOuter)
+  ... | CIFHCast (_ , _ , refl , _ , GSumHole , _) = S (_ , Step FHOuter (ITCastSucceed GSumHole) FHOuter)
+  
     -- if both are arrows
   progress (TACast wt (TCArr {τ1} {τ2} {τ1'} {τ2'} c1 c2)) | I x
     with htype-dec (τ1 ==> τ2)  (τ1' ==> τ2')
-  progress (TACast wt (TCArr c1 c2)) | I x₁ | Inl refl = S (_ , Step FHOuter ITCastID FHOuter)
-  progress (TACast wt (TCArr c1 c2)) | I x₁ | Inr x = I (ICastArr x x₁)
+  ... | Inl refl = S (_ , Step FHOuter ITCastID FHOuter)
+  ... | Inr y    = I (ICastArr y x)
+
+    -- if both are sums
+  progress (TACast wt (TCSum {τ1} {τ2} {τ1'} {τ2'} c1 c2)) | I x
+    with htype-dec (τ1 ⊕ τ2) (τ1' ⊕ τ2')
+  ... | Inl refl = S (_ , Step FHOuter ITCastID FHOuter)
+  ... | Inr y    = I (ICastSum y x)
+  
     -- boxed value cases, inspect how the casts are realted by consistency
     -- step by ID if the casts are the same
-  progress (TACast wt TCRefl)  | BV x = S (_ , Step FHOuter ITCastID FHOuter)
+  progress (TACast wt TCRefl) | BV x = S (_ , Step FHOuter ITCastID FHOuter)
     -- if left is hole
   progress (TACast wt (TCHole1 {τ = τ})) | BV x
-    with ground-decidable τ
-  progress (TACast wt TCHole1) | BV x₁ | Inl g = BV (BVHoleCast g x₁)
-  progress (TACast wt (TCHole1 {num})) | BV x₁ | Inr x = abort (x GNum)
-  progress (TACast wt (TCHole1 {⦇-⦈})) | BV x₁ | Inr x = S (_ , Step FHOuter ITCastID FHOuter)
-  progress (TACast wt (TCHole1 {τ1 ==> τ2})) | BV x₁ | Inr x
-    with (htype-dec  (τ1 ==> τ2) (⦇-⦈ ==> ⦇-⦈))
-  progress (TACast wt (TCHole1 {.⦇-⦈ ==> .⦇-⦈})) | BV x₂ | Inr x₁ | Inl refl = BV (BVHoleCast GHole x₂)
-  progress (TACast wt (TCHole1 {τ1 ==> τ2})) | BV x₂ | Inr x₁ | Inr x = S (_ , Step FHOuter (ITGround (MGArr x)) FHOuter)
+    with τ | ground-decidable τ
+  ... | τ | Inl g = BV (BVHoleCast g x)
+  ... | num | Inr y = abort (y GNum)
+  ... | ⦇-⦈ | Inr y = S (_ , Step FHOuter ITCastID FHOuter)
+  ... | τ1 ==> τ2 | Inr y
+    with (htype-dec (τ1 ==> τ2) (⦇-⦈ ==> ⦇-⦈))
+  ... | Inl refl = BV (BVHoleCast GArrHole x)
+  ... | Inr y    = S (_ , Step FHOuter (ITGround (MGArr y)) FHOuter)
+  progress (TACast wt (TCHole1 {τ = τ})) | BV x  | τ1 ⊕ τ2 | Inr y
+    with (htype-dec (τ1 ⊕ τ2) (⦇-⦈ ⊕ ⦇-⦈))
+  ... | Inl refl = BV (BVHoleCast GSumHole x)
+  ... | Inr y    = S (_ , Step FHOuter (ITGround (MGSum y)) FHOuter)
     -- if right is hole
   progress {τ = τ} (TACast wt TCHole2) | BV x
     with canonical-boxed-forms-hole wt x
-  progress {τ = τ} (TACast wt TCHole2) | BV x | d' , τ' , refl , gnd , wt'
+  ... | d' , τ' , refl , gnd , wt'
     with htype-dec τ τ'
-  progress (TACast wt TCHole2) | BV x₁ | d' , τ , refl , gnd , wt' | Inl refl = S (_  , Step FHOuter (ITCastSucceed gnd) FHOuter)
-  progress {τ = τ} (TACast wt TCHole2) | BV x₁ | _ , _ , refl , _ , _ | Inr _
+  ... | Inl refl = S (_  , Step FHOuter (ITCastSucceed gnd) FHOuter)
+  ... | Inr x₁
     with ground-decidable τ
-  progress (TACast wt TCHole2) | BV x₂ | _ , _ , refl , gnd , _ | Inr x₁ | Inl x = S(_ , Step FHOuter (ITCastFail gnd x (flip x₁)) FHOuter)
-  progress (TACast wt TCHole2) | BV x₂ | _ , _ , refl , _ , _ | Inr x₁ | Inr x
-    with notground x
-  progress (TACast wt TCHole2) | BV x₃ | _ , _ , refl , _ , _ | Inr _ | Inr _ | Inl refl = S (_ , Step FHOuter ITCastID FHOuter)
-  progress (TACast wt TCHole2) | BV x₃ | _ , _ , refl , _ , _ | Inr _ | Inr x | Inr (_ , _ , refl) = S(_ , Step FHOuter (ITExpand (MGArr (ground-arr-not-hole x))) FHOuter )
+  ... | Inl y = S (_ , Step FHOuter (ITCastFail gnd y (flip x₁)) FHOuter)
+  ... | Inr y
+    with not-ground y
+  ... | Inl refl = S (_ , Step FHOuter ITCastID FHOuter)
+  ... | Inr (Inl (_ , _ , refl)) = S (_ , Step FHOuter (ITExpand (MGArr (π1 (ground-not-holes y)))) FHOuter)
+  ... | Inr (Inr (_ , _ , refl)) = S (_ , Step FHOuter (ITExpand (MGSum (π2 (ground-not-holes y)))) FHOuter)
     -- if both arrows
   progress (TACast wt (TCArr {τ1} {τ2} {τ1'} {τ2'} c1 c2)) | BV x
     with htype-dec (τ1 ==> τ2) (τ1' ==> τ2')
-  progress (TACast wt (TCArr c1 c2)) | BV x₁ | Inl refl = S (_ , Step FHOuter ITCastID FHOuter)
-  progress (TACast wt (TCArr c1 c2)) | BV x₁ | Inr x = BV (BVArrCast x x₁)
-
+  ... | Inl refl = S (_ , Step FHOuter ITCastID FHOuter)
+  ... | Inr y = BV (BVArrCast y x)
+    -- if both sums
+  progress (TACast wt (TCSum {τ1} {τ2} {τ1'} {τ2'} c1 c2)) | BV x
+    with htype-dec (τ1 ⊕ τ2) (τ1' ⊕ τ2')
+  ... | Inl refl = S (_ , Step FHOuter ITCastID FHOuter)
+  ... | Inr y = BV (BVSumCast y x)
+  
    -- failed casts
   progress (TAFailedCast wt y z w)
     with progress wt
-  progress (TAFailedCast wt y z w) | S (d' , Step x a q) = S (_ , Step (FHFailedCast x) a (FHFailedCast q))
-  progress (TAFailedCast wt y z w) | I x = I (IFailedCast (FIndet x) y z w)
-  progress (TAFailedCast wt y z w) | BV x = I (IFailedCast (FBoxedVal x) y z w)
+  ... | S (d' , Step x a q) = S (_ , Step (FHFailedCast x) a (FHFailedCast q))
+  ... | I x = I (IFailedCast (FIndet x) y z w)
+  ... | BV x = I (IFailedCast (FBoxedVal x) y z w)

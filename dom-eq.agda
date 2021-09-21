@@ -52,10 +52,10 @@ module dom-eq where
   -- if two sets share a domain with disjoint sets, then their union shares
   -- a domain with the union
   dom-union : {A B : Set} {Δ1 Δ2 : A ctx} {H1 H2 : B ctx} →
-                                     H1 ## H2 →
-                                     dom-eq Δ1 H1 →
-                                     dom-eq Δ2 H2 →
-                                     dom-eq (Δ1 ∪ Δ2) (H1 ∪ H2)
+              H1 ## H2 →
+              dom-eq Δ1 H1 →
+              dom-eq Δ2 H2 →
+              dom-eq (Δ1 ∪ Δ2) (H1 ∪ H2)
   dom-union {A} {B} {Δ1} {Δ2} {H1} {H2} disj (p1 , p2) (p3 , p4) = guts1 , guts2
     where
       guts1 : (n : Nat) →
@@ -65,7 +65,7 @@ module dom-eq where
       guts1 n (x₁ , eq) | Inl x with p1 n x
       ... | q1 , q2 = q1 , x∈∪l H1 H2 n q1 q2
       guts1 n (x₁ , eq) | Inr x with p3 n (_ , lem-dom-union-apt1 {Δ1 = Δ1} {Δ2 = Δ2} x eq)
-      ... | q1 , q2 =  q1 , x∈∪r H1 H2 n q1 q2 (##-comm disj)
+      ... | q1 , q2 =  q1 , x∈∪r H1 H2 n q1 q2 (π2 disj n (q1 , q2))
 
       guts2 : (n : Nat) →
                  Σ[ y ∈ B ] ((H1 ∪ H2) n == Some y) →
@@ -74,4 +74,5 @@ module dom-eq where
       guts2 n (x₁ , eq) | Inl x with p2 n x
       ... | q1 , q2 = q1 , x∈∪l Δ1 Δ2 n q1 q2
       guts2 n (x₁ , eq) | Inr x with p4 n (_ , lem-dom-union-apt2 {Δ1 = H2} {Δ2 = H1} x (tr (λ qq → qq n == Some x₁) (∪comm H1 H2 disj) eq))
-      ... | q1 , q2 = q1 , x∈∪r Δ1 Δ2 n q1 q2 (##-comm (dom-eq-disj disj (p1 , p2) (p3 , p4)))
+      ... | q1 , q2 with ##-comm (dom-eq-disj disj (p1 , p2) (p3 , p4))
+      ... | π3 , π4 = q1 , x∈∪r Δ1 Δ2 n q1 q2 (π3 n (q1 , q2))

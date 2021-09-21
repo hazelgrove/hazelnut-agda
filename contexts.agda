@@ -24,7 +24,7 @@ module contexts where
 
   -- this packages up an appeal to context memebership into a form that
   -- lets us retain more information
-  ctxindirect : {A : Set} (Γ : A ctx) (n : Nat) → Σ[ a ∈ A ] (Γ n == Some a) + Γ n == None
+  ctxindirect : {A : Set} (Γ : A ctx) (n : Nat) → Σ[ a ∈ A ] (Γ n == Some a) + (Γ n == None)
   ctxindirect Γ n with Γ n
   ctxindirect Γ n | Some x = Inl (x , refl)
   ctxindirect Γ n | None = Inr refl
@@ -61,24 +61,36 @@ module contexts where
   ... | Inr _ = None
 
   -- context extension
+  -- Note that if x is not apart from Γ, this relies on the asymmetry
+  -- of union to set Γ x = t.
   _,,_ : {A : Set} → A ctx → (Nat × A) → A ctx
-  (Γ ,, (x , t)) = Γ ∪ (■ (x , t))
+  (Γ ,, (x , t)) = (■ (x , t)) ∪ Γ
 
   infixl 10 _,,_
 
+  extend-empty : {A : Set} (x : Nat) (t : A) →
+                 ∅ ,, (x , t) == ■ (x , t)
+  extend-empty x t = funext eq
+    where
+      eq : (y : Nat) → (∅ ,, (x , t)) y == (■ (x , t)) y
+      eq y with natEQ x y
+      ... | Inl refl = refl
+      ... | Inr x≠y = refl
+
+
   -- used below in proof of ∪ commutativity and associativity
   lem-dom-union1 : {A : Set} {C1 C2 : A ctx} {x : Nat} →
-                                    C1 ## C2 →
-                                    dom C1 x →
-                                    (C1 ∪ C2) x == C1 x
+                   C1 ## C2 →
+                   dom C1 x →
+                   (C1 ∪ C2) x == C1 x
   lem-dom-union1 {A} {C1} {C2} {x} (d1 , d2) D with C1 x
   lem-dom-union1 (d1 , d2) D | Some x₁ = refl
   lem-dom-union1 (d1 , d2) D | None = abort (somenotnone (! (π2 D)))
 
   lem-dom-union2 : {A : Set} {C1 C2 : A ctx} {x : Nat} →
-                                    C1 ## C2 →
-                                    dom C1 x →
-                                    (C2 ∪ C1) x == C1 x
+                   C1 ## C2 →
+                   dom C1 x →
+                   (C2 ∪ C1) x == C1 x
   lem-dom-union2 {A} {C1} {C2} {x} (d1 , d2) D with ctxindirect C2 x
   lem-dom-union2 {A} {C1} {C2} {x} (d1 , d2) D | Inl x₁ = abort (somenotnone (! (π2 x₁) · d1 x D ))
   lem-dom-union2 {A} {C1} {C2} {x} (d1 , d2) D | Inr x₁ with C2 x
@@ -113,14 +125,14 @@ module contexts where
   x∈∪l Γ Γ' n x₁ xin | Some x = xin
   x∈∪l Γ Γ' n x ()   | None
 
-  -- an element in the right of a union is in the union as long as the
-  -- contexts are disjoint; this asymmetry reflects the asymmetry in the
-  -- definition of union
+  -- an element in the right of a union is in the union as long as it is not in the left;
+  -- this asymmetry reflects the asymmetry in the definition of union
   x∈∪r : {A : Set} → (Γ Γ' : A ctx) (n : Nat) (x : A) →
                              (n , x) ∈ Γ' →
-                             Γ' ## Γ →
+                             n # Γ →
                              (n , x) ∈ (Γ ∪ Γ')
-  x∈∪r Γ Γ' n x nx∈ disj = tr (λ qq → (n , x) ∈ qq) (∪comm _ _ disj) (x∈∪l Γ' Γ n x nx∈)
+  x∈∪r Γ Γ' n x nx∈ apt with Γ n
+  ... | None = nx∈
 
   -- an element is in the context formed with just itself
   x∈■ : {A : Set} (n : Nat) (a : A) → (n , a) ∈ (■ (n , a))
@@ -200,10 +212,13 @@ module contexts where
 
   -- extending a context with a new index produces the result paired with
   -- that index.
-  ctx-top : {A : Set} → (Γ : A ctx) (n : Nat) (a : A) →
-                                       (n # Γ) →
-                                       (n , a) ∈ (Γ ,, (n , a))
-  ctx-top Γ n a apt = x∈∪r Γ (■ (n , a)) n a (x∈■ n a) (lem-apart-sing-disj apt)
+  ctx-top : {A : Set} →
+            (Γ : A ctx) (n : Nat) (a : A) →
+            (n # Γ) →
+            (n , a) ∈ (Γ ,, (n , a))
+  ctx-top Γ n a apt with natEQ n n
+  ... | Inl refl = refl
+  ... | Inr n≠n = abort (n≠n refl)
 
   -- if a union of a singleton and a ctx produces no result, the argument
   -- index must be apart from the ctx and disequal to the index of the
@@ -302,3 +317,19 @@ module contexts where
   lem-dom-union-apt2 {A} {Δ1} {Δ2} {x} {y} apt xin with Δ1 x
   lem-dom-union-apt2 apt xin | Some x₁ = xin
   lem-dom-union-apt2 apt xin | None = abort (somenotnone (! xin · apt))
+
+  -- if x is in the union , it is in one of the parts
+  lem-dom-union : {A : Set} {Δ1 Δ2 : A ctx} {x : Nat} {y : A} → (x , y) ∈ (Δ1 ∪ Δ2) → ((x , y) ∈ Δ1) + ((x , y) ∈ Δ2)
+  lem-dom-union {Δ1 = Δ1} {Δ2 = Δ2} {x = x} ∈∪ with Δ1 x
+  ... | Some x₁ = Inl ∈∪
+  ... | None = Inr ∈∪
+
+  update : {A : Set} (Γ : A ctx) (x : Nat) (τ1 τ2 : A) → Γ ,, (x , τ1) ,, (x , τ2) == Γ ,, (x , τ2)
+  update Γ x τ1 τ2 = funext eq
+    where
+      eq : (y : Nat) → (Γ ,, (x , τ1) ,, (x , τ2)) y == (Γ ,, (x , τ2)) y
+      eq y with natEQ x y
+      ... | Inl refl = refl
+      ... | Inr x≠y with natEQ x y
+      ... | Inl refl = abort (x≠y refl)
+      ... | Inr x≠y' = refl

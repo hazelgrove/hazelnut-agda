@@ -25,3 +25,6 @@ module elaboration-generality where
     elaboration-generality-ana (EASubsume x x₁ x₂ x₃) = ASubsume (elaboration-generality-synth x₂) x₃
     elaboration-generality-ana EAEHole = ASubsume SEHole TCHole1
     elaboration-generality-ana (EANEHole dis x) = ASubsume (SNEHole (elab-disjoint-new-synth x dis) (elaboration-generality-synth x)) TCHole1
+    elaboration-generality-ana (EAInl x x₁) = AInl x (elaboration-generality-ana x₁)
+    elaboration-generality-ana (EAInr x x₁) = AInr x (elaboration-generality-ana x₁)
+    elaboration-generality-ana (EACase x x₁ x₂ x₃ x₄ x₅ x₆ x₇ x₈ x₉ x₁₀ x₁₁) = ACase x x₁ x₂ x₆ x₇ x₉ (elaboration-generality-synth x₈) (elaboration-generality-ana x₁₀) (elaboration-generality-ana x₁₁)

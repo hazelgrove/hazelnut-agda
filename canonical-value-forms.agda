@@ -23,13 +23,21 @@ module canonical-value-forms where
                                 ((d == (·λ x [ τ1 ] d')) ×
                                  (Δ , ■ (x , τ1) ⊢ d' :: τ2))
   canonical-value-forms-arr (TAVar x₁) ()
-  canonical-value-forms-arr (TALam _ wt) VLam = _ , _ , refl , wt
+  canonical-value-forms-arr {Δ = Δ} {d = ·λ x [ τ1 ] d} {τ1 = τ1} {τ2 = τ2} (TALam _ wt) VLam = _ , _ , refl , tr (λ Γ → Δ , Γ ⊢ d :: τ2) (extend-empty x τ1) wt
   canonical-value-forms-arr (TAAp wt wt₁) ()
   canonical-value-forms-arr (TAEHole x x₁) ()
   canonical-value-forms-arr (TANEHole x wt x₁) ()
   canonical-value-forms-arr (TACast wt x) ()
   canonical-value-forms-arr (TAFailedCast x x₁ x₂ x₃) ()
 
+  canonical-value-form-sum : ∀{Δ d τ1 τ2} →
+                              Δ , ∅ ⊢ d :: (τ1 ⊕ τ2) →
+                              d val →
+                              (Σ[ d' ∈ ihexp ] ((d == (inl τ2 d')) × (Δ , ∅ ⊢ d' :: τ1))) +
+                              (Σ[ d' ∈ ihexp ] ((d == (inr τ1 d')) × (Δ , ∅ ⊢ d' :: τ2)))
+  canonical-value-form-sum (TAInl wt) (VInl v) = Inl (_ , refl , wt)
+  canonical-value-form-sum (TAInr wt) (VInr v) = Inr (_ , refl , wt)
+  
   -- this argues (somewhat informally, because you still have to inspect
   -- the types of the theorems above and manually verify this property)
   -- that we didn't miss any cases above; this intentionally will make this
@@ -40,15 +48,12 @@ module canonical-value-forms where
                                    d val →
                                    τ ≠ num →
                                    ((τ1 : htyp) (τ2 : htyp) → τ ≠ (τ1 ==> τ2)) →
+                                   ((τ1 : htyp) (τ2 : htyp) → τ ≠ (τ1 ⊕ τ2)) →
                                    ⊥
-  canonical-value-forms-coverage1 TANum VNum = λ z _ → z refl
-  canonical-value-forms-coverage1 (TAVar x₁) ()
-  canonical-value-forms-coverage1 (TALam _ wt) VLam = λ _ z → z _ _ refl
-  canonical-value-forms-coverage1 (TAAp wt wt₁) ()
-  canonical-value-forms-coverage1 (TAEHole x x₁) ()
-  canonical-value-forms-coverage1 (TANEHole x wt x₁) ()
-  canonical-value-forms-coverage1 (TACast wt x) ()
-  canonical-value-forms-coverage1 (TAFailedCast wt x x₁ x₂) ()
+  canonical-value-forms-coverage1 TANum val nn na ns = nn refl
+  canonical-value-forms-coverage1 (TALam x wt) val nn na ns = na _ _ refl
+  canonical-value-forms-coverage1 (TAInl wt) val nn na ns = ns _ _ refl
+  canonical-value-forms-coverage1 (TAInr wt) val nn na ns = ns _ _ refl
 
   canonical-value-forms-coverage2 : ∀{Δ d} →
                                    Δ , ∅ ⊢ d :: ⦇-⦈ →

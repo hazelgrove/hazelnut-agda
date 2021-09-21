@@ -10,23 +10,27 @@ module lemmas-progress-checks where
   boxedval-not-trans (BVArrCast x bv) (ITCastID) = x refl
   boxedval-not-trans (BVHoleCast () bv) (ITCastID)
   boxedval-not-trans (BVHoleCast () bv) (ITCastSucceed x₁)
-  boxedval-not-trans (BVHoleCast GHole bv) (ITGround (MGArr x)) = x refl
+  boxedval-not-trans (BVHoleCast GArrHole bv) (ITGround (MGArr x)) = x refl
   boxedval-not-trans (BVHoleCast x a) (ITExpand ())
   boxedval-not-trans (BVHoleCast x x₁) (ITCastFail x₂ () x₄)
+  boxedval-not-trans (BVVal (VInl x)) ()
+  boxedval-not-trans (BVVal (VInr x)) ()
+  boxedval-not-trans (BVSumCast x x₁) ITCastID = x refl
+  boxedval-not-trans (BVHoleCast GSumHole x₁) (ITGround (MGSum x₂)) = x₂ refl
 
   -- indets don't have an instruction transition
   indet-not-trans : ∀{d d'} → d indet → d →> d' → ⊥
   indet-not-trans IEHole ()
   indet-not-trans (INEHole x) ()
   indet-not-trans (IAp x₁ () x₂) (ITLam)
-  indet-not-trans (IAp x (ICastArr x₁ ind) x₂) (ITApCast ) = x _ _ _ _ _ refl
+  indet-not-trans (IAp x (ICastArr x₁ ind) x₂) ITApCast = x _ _ _ _ _ refl
   indet-not-trans (ICastArr x ind) (ITCastID) = x refl
   indet-not-trans (ICastGroundHole () ind) (ITCastID)
   indet-not-trans (ICastGroundHole x ind) (ITCastSucceed ())
-  indet-not-trans (ICastGroundHole GHole ind) (ITGround (MGArr x)) = x refl
+  indet-not-trans (ICastGroundHole GArrHole ind) (ITGround (MGArr x)) = x refl
   indet-not-trans (ICastHoleGround x ind ()) (ITCastID)
   indet-not-trans (ICastHoleGround x ind x₁) (ITCastSucceed x₂) = x _ _ refl
-  indet-not-trans (ICastHoleGround x ind GHole) (ITExpand (MGArr x₂)) = x₂ refl
+  indet-not-trans (ICastHoleGround x ind GArrHole) (ITExpand (MGArr x₂)) = x₂ refl
   indet-not-trans (ICastGroundHole x a) (ITExpand ())
   indet-not-trans (ICastHoleGround x a x₁) (ITGround ())
   indet-not-trans (ICastGroundHole x x₁) (ITCastFail x₂ () x₄)
@@ -34,6 +38,12 @@ module lemmas-progress-checks where
   indet-not-trans (IFailedCast x x₁ x₂ x₃) ()
   indet-not-trans (IPlus1 () x₁) (ITPlus x₂)
   indet-not-trans (IPlus2 x ()) (ITPlus x₂)
+  indet-not-trans (ICase x x₂ x₃ (IInl x₄)) ITCaseInl = x _ _ refl
+  indet-not-trans (ICase x x₂ x₃ (IInr x₄)) ITCaseInr = x₂ _ _ refl
+  indet-not-trans (ICase x x₂ x₃ (ICastSum x₁ x₄)) ITCaseCast = x₃ _ _ _ _ _ refl
+  indet-not-trans (ICastSum x x₂) ITCastID = x refl
+  indet-not-trans (ICastGroundHole GSumHole x₂) (ITGround (MGSum x₁)) = x₁ refl
+  indet-not-trans (ICastHoleGround x x₂ GSumHole) (ITExpand (MGSum x₁)) = x₁ refl
   
 
   -- finals don't have an instruction transition
@@ -70,6 +80,16 @@ module lemmas-progress-checks where
   final-sub-final (FIndet (ICastGroundHole x₁ x₂)) (FHCast eps) = final-sub-final (FIndet x₂) eps
   final-sub-final (FIndet (ICastHoleGround x₁ x₂ x₃)) (FHCast eps) = final-sub-final (FIndet x₂) eps
   final-sub-final (FIndet (IFailedCast x₁ x₂ x₃ x₄)) (FHFailedCast y) = final-sub-final x₁ y
+  final-sub-final (FBoxedVal (BVVal ())) (FHCase eps)
+  final-sub-final (FBoxedVal (BVSumCast x x₁)) (FHCast eps) = final-sub-final (FBoxedVal x₁) eps
+  final-sub-final (FIndet (ICase x x₁ x₂ x₃)) (FHCase eps) = final-sub-final (FIndet x₃) eps
+  final-sub-final (FIndet (ICastSum x x₁)) (FHCast eps) = final-sub-final (FIndet x₁) eps
+  final-sub-final (FBoxedVal (BVVal (VInl x))) (FHInl eps) = final-sub-final (FBoxedVal (BVVal x)) eps
+  final-sub-final (FBoxedVal (BVInl x)) (FHInl eps) = final-sub-final (FBoxedVal x) eps
+  final-sub-final (FIndet (IInl x)) (FHInl eps) = final-sub-final (FIndet x) eps
+  final-sub-final (FBoxedVal (BVVal (VInr x))) (FHInr eps) = final-sub-final (FBoxedVal (BVVal x)) eps
+  final-sub-final (FBoxedVal (BVInr x)) (FHInr eps) = final-sub-final (FBoxedVal x) eps
+  final-sub-final (FIndet (IInr x)) (FHInr eps) = final-sub-final (FIndet x) eps
   
   final-sub-not-trans : ∀{d d' d'' ε} →  d final → d == ε ⟦ d' ⟧ → d' →> d'' → ⊥
   final-sub-not-trans f sub step = final-not-trans (final-sub-final f sub) step

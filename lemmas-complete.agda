@@ -16,17 +16,24 @@ module lemmas-complete where
   lem-ind-comp (DCCast comp x x₁) (ICastArr x₂ ind) = lem-ind-comp comp ind
   lem-ind-comp (DCCast comp x x₁) (ICastGroundHole x₂ ind) = lem-ind-comp comp ind
   lem-ind-comp (DCCast comp x x₁) (ICastHoleGround x₂ ind x₃) = lem-ind-comp comp ind
+  lem-ind-comp (DCInl x comp) (IInl ind) = lem-ind-comp comp ind
+  lem-ind-comp (DCInr x comp) (IInr ind) = lem-ind-comp comp ind
+  lem-ind-comp (DCCase comp comp₁ comp₂) (ICase x x₁ x₂ ind) = lem-ind-comp comp ind
+  lem-ind-comp (DCCast comp x x₁) (ICastSum x₂ ind) = lem-ind-comp comp ind
 
   -- complete types that are consistent are equal
   complete-consistency : ∀{τ1 τ2} → τ1 ~ τ2 → τ1 tcomplete → τ2 tcomplete → τ1 == τ2
   complete-consistency TCRefl TCNum comp2 = refl
   complete-consistency TCRefl (TCArr comp1 comp2) comp3 = refl
+  complete-consistency TCRefl (TCSum tc1 tc3) comp2 = refl
   complete-consistency TCHole1 comp1 ()
-  complete-consistency TCHole2 () comp2
   complete-consistency (TCArr consis consis₁) (TCArr comp1 comp2) (TCArr comp3 comp4)
    with complete-consistency consis comp1 comp3 | complete-consistency consis₁ comp2 comp4
   ... | refl | refl = refl
-
+  complete-consistency (TCSum consis consis₁) (TCSum comp1 comp2) (TCSum comp3 comp4)
+    with complete-consistency consis comp1 comp3 | complete-consistency consis₁ comp2 comp4
+  ... | refl | refl = refl
+  
   -- a well typed complete term is assigned a complete type
   complete-ta : ∀{Γ Δ d τ} → (Γ gcomplete) →
                              (Δ , Γ ⊢ d :: τ) →
@@ -36,13 +43,19 @@ module lemmas-complete where
   complete-ta gc (TAPlus wt wt₁) comp = TCNum
   complete-ta gc (TAVar x₁) DCVar = gc _ _ x₁
   complete-ta gc (TALam a wt) (DCLam comp x₁) = TCArr x₁ (complete-ta (gcomp-extend gc x₁ a ) wt comp)
-  complete-ta gc (TAAp wt wt₁) (DCAp comp comp₁) with complete-ta gc wt comp
-  complete-ta gc (TAAp wt wt₁) (DCAp comp comp₁) | TCArr qq qq₁ = qq₁
+  complete-ta gc (TAAp wt wt₁) (DCAp comp comp₁)
+    with complete-ta gc wt comp
+  ... | TCArr qq qq₁ = qq₁
   complete-ta gc (TAEHole x x₁) ()
   complete-ta gc (TANEHole x wt x₁) ()
   complete-ta gc (TACast wt x) (DCCast comp x₁ x₂) = x₂
   complete-ta gc (TAFailedCast wt x x₁ x₂) ()
-
+  complete-ta gc (TAInl wt) (DCInl x comp) = TCSum (complete-ta gc wt comp) x
+  complete-ta gc (TAInr wt) (DCInr x comp) = TCSum x (complete-ta gc wt comp)
+  complete-ta gc (TACase wt apt₁ wt₁ apt₂ wt₂) (DCCase comp comp₁ comp₂)
+    with complete-ta gc wt comp
+  ... | TCSum τc1 τc2 =  complete-ta (gcomp-extend gc τc1 apt₁) wt₁ comp₁ 
+ 
   -- a well typed term synthesizes a complete type
   comp-synth : ∀{Γ e τ} →
                    Γ gcomplete →

@@ -63,8 +63,10 @@ module lemmas-disjointness where
   apart-parts _ _ n refl apt2 | .None = apt2
 
   -- this is just for convenience; it shows up a lot.
-  apart-extend1 : {A : Set} → ∀{ x y τ} → (Γ : A ctx)  → x ≠ y → x # Γ → x # (Γ ,, (y , τ))
-  apart-extend1 {A} {x} {y} {τ} Γ neq apt = apart-parts Γ (■ (y , τ)) x apt (apart-singleton neq)
+  apart-extend1 : {A : Set} → ∀{x y τ} → (Γ : A ctx) → x ≠ y → x # Γ → x # (Γ ,, (y , τ))
+  apart-extend1 {A} {x} {y} {τ} Γ neq apt with natEQ y x
+  ... | Inl refl = abort (neq refl)
+  ... | Inr y≠x  = apt
 
   -- if an index is in the domain of a union, it's in the domain of one or
   -- the other unand
