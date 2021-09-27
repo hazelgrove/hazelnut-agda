@@ -9,34 +9,6 @@ open import disjointness
 open import typed-elaboration
 
 module elaborability where
-
-  -- bad : Σ[ Γ ∈ tctx ] Σ[ e ∈ hexp ] Σ[ τ ∈ htyp ]
-  --          ((Γ ⊢ e <= τ →
-  --            Σ[ d ∈ ihexp ] Σ[ Δ ∈ hctx ] Σ[ τ' ∈ htyp ]
-  --               (Γ ⊢ e ⇐ τ ~> d :: τ' ⊣ Δ)) →
-  --          ⊥)
-  -- bad = bad-Γ , bad-expr , ⦇-⦈ , no-good
-  --   where
-  --     bad-expr : hexp
-  --     bad-expr = case ⦇-⦈[ 0 ] 1 (X 2) 3 (X 4)
-      
-  --     bad-Γ : tctx
-  --     bad-Γ 2 = Some num
-  --     bad-Γ 4 = Some (num ==> num)
-  --     bad-Γ x = None
-
-  --     analyzes : bad-Γ ⊢ bad-expr <= ⦇-⦈
-  --     analyzes = ACase (HDHole HNVar) (HDHole HNVar) HDVar refl refl MSHole SEHole
-  --                  (ASubsume (SVar refl) TCHole2) (ASubsume (SVar refl) TCHole2)
-  --     no-elab : (Σ[ d ∈ ihexp ] Σ[ Δ ∈ hctx ] Σ[ τ' ∈ htyp ]
-  --                 (bad-Γ ⊢ bad-expr ⇐ ⦇-⦈ ~> d :: τ' ⊣ Δ)) → ⊥
-  --     no-elab (_ , _ , τ' , EACase {d1 = .(X 2)} {τr1 = num} {d2 = .(X 4)} {τr2 = .(num ==> num)} x x₁ x₂ x₃ x₄ x₅ x₆ x₇ x₈ x₉ (EASubsume x₁₁ x₁₂ (ESVar refl) x₁₄) (EASubsume x₁₅ x₁₆ (ESVar refl) x₁₈) ())
-      
-  --     no-good : (bad-Γ ⊢ bad-expr <= ⦇-⦈ →
-  --               Σ[ d ∈ ihexp ] Σ[ Δ ∈ hctx ] Σ[ τ' ∈ htyp ]
-  --                 (bad-Γ ⊢ bad-expr ⇐ ⦇-⦈ ~> d :: τ' ⊣ Δ)) →
-  --               ⊥       
-  --     no-good imp = no-elab (imp analyzes)
       
   mutual
     elaborability-synth : {Γ : tctx} {e : hexp} {τ : htyp} →
@@ -51,17 +23,21 @@ module elaborability where
       with elaborability-ana wt
     ... | _ , _ , τ' , D  = _ , _ , ESAsc D
     elaborability-synth (SVar x) = _ , _ , ESVar x
+    elaborability-synth (SLam x₁ wt)
+      with elaborability-synth wt
+    ... | d' , Δ' , wt' = _ , _ , ESLam x₁ wt'
     elaborability-synth (SAp dis wt1 m wt2)
       with elaborability-ana (ASubsume wt1 (~sym (▸arr-consist m))) | elaborability-ana wt2
     ... | _ , _ , _ , D1 | _ , _ , _ , D2 = _ , _ , ESAp dis (elab-ana-disjoint dis D1 D2) wt1 m D1 D2
+    elaborability-synth (SPair x wt wt₁)
+      with elaborability-synth wt | elaborability-synth wt₁
+    ... | _ , _ , D1 | _ , _ , D2 = _ , _ , ESPair x (elab-synth-disjoint x D1 D2) D1 D2
     elaborability-synth SEHole = _ , _ , ESEHole
     elaborability-synth (SNEHole new wt)
       with elaborability-synth wt
     ... | d' , Δ' , wt' = _ , _ , ESNEHole (elab-new-disjoint-synth new wt') wt'
-    elaborability-synth (SLam x₁ wt)
-      with elaborability-synth wt
-    ... | d' , Δ' , wt' = _ , _ , ESLam x₁ wt'
-
+  
+    
     elaborability-ana : {Γ : tctx} {e : hexp} {τ : htyp} →
                          Γ ⊢ e <= τ →
                          Σ[ d ∈ ihexp ] Σ[ Δ ∈ hctx ] Σ[ τ' ∈ htyp ]
@@ -76,6 +52,9 @@ module elaborability where
     elaborability-ana {e = ·λ x e} (ASubsume D x₁)               | _ , _ , D' = _ , _ , _ , EASubsume (λ _ ()) (λ _ _ ()) D' x₁
     elaborability-ana {e = ·λ x [ x₁ ] e} (ASubsume D x₂)        | _ , _ , D' = _ , _ , _ , EASubsume (λ _ ()) (λ _ _ ()) D' x₂
     elaborability-ana {e = e1 ∘ e2} (ASubsume D x₁)              | _ , _ , D' = _ , _ , _ , EASubsume (λ _ ()) (λ _ _ ()) D' x₁
+    elaborability-ana {e = ⟨ e1 , e2 ⟩} (ASubsume D x₁)          | _ , _ , D' = _ , _ , _ , EASubsume (λ _ ()) (λ _ _ ()) D' x₁
+    elaborability-ana {e = fst e} (ASubsume D x₁)                | _ , _ , D' = _ , _ , _ , EASubsume (λ _ ()) (λ _ _ ()) D' x₁
+    elaborability-ana {e = snd e} (ASubsume D x₁)                | _ , _ , D' = _ , _ , _ , EASubsume (λ _ ()) (λ _ _ ()) D' x₁
     -- the two holes are special-cased
     elaborability-ana {e = ⦇-⦈[ x ]} (ASubsume _ _ )                   | _ , _ , _  = _ , _ , _ , EAEHole
     elaborability-ana {Γ} {⦇⌜ e ⌟⦈[ x ]} (ASubsume (SNEHole new wt) x₂) | _ , _ , ESNEHole x₁ D' with elaborability-synth wt

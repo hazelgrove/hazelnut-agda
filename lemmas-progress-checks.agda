@@ -17,7 +17,12 @@ module lemmas-progress-checks where
   boxedval-not-trans (BVVal (VInr x)) ()
   boxedval-not-trans (BVSumCast x x₁) ITCastID = x refl
   boxedval-not-trans (BVHoleCast GSumHole x₁) (ITGround (MGSum x₂)) = x₂ refl
-
+  boxedval-not-trans (BVInl bv) ()
+  boxedval-not-trans (BVInr bv) ()
+  boxedval-not-trans (BVPair bv bv₁) ()
+  boxedval-not-trans (BVProdCast x bv) ITCastID = x refl
+  boxedval-not-trans (BVHoleCast GProdHole bv) (ITGround (MGProd x)) = x refl
+  
   -- indets don't have an instruction transition
   indet-not-trans : ∀{d d'} → d indet → d →> d' → ⊥
   indet-not-trans IEHole ()
@@ -43,9 +48,20 @@ module lemmas-progress-checks where
   indet-not-trans (ICase x x₂ x₃ (ICastSum x₁ x₄)) ITCaseCast = x₃ _ _ _ _ _ refl
   indet-not-trans (ICastSum x x₂) ITCastID = x refl
   indet-not-trans (ICastGroundHole GSumHole x₂) (ITGround (MGSum x₁)) = x₁ refl
+  indet-not-trans (ICastGroundHole GProdHole ind) (ITGround (MGProd x)) = x refl
   indet-not-trans (ICastHoleGround x x₂ GSumHole) (ITExpand (MGSum x₁)) = x₁ refl
-  
-
+  indet-not-trans (ICastHoleGround x ind GProdHole) (ITExpand (MGProd x₁)) = x₁ refl
+  indet-not-trans (IInl ind) ()
+  indet-not-trans (IInr ind) ()
+  indet-not-trans (IPair1 ind x) ()
+  indet-not-trans (IPair2 x ind) ()
+  indet-not-trans (IFst x x₁ ind) ITFstPair = x _ _ refl
+  indet-not-trans (IFst x x₁ ind) ITFstCast = x₁ _ _ _ _ _ refl
+  indet-not-trans (ISnd x x₁ ind) ITSndPair = x _ _ refl
+  indet-not-trans (ISnd x x₁ ind) ITSndCast = x₁ _ _ _ _ _ refl
+  indet-not-trans (ICastProd x ind) ITCastID = x refl
+  indet-not-trans (ICastGroundHole GNum ind) (ITGround ())
+  indet-not-trans (ICastHoleGround x ind GNum) (ITExpand ())
   -- finals don't have an instruction transition
   final-not-trans : ∀{d d'} → d final → d →> d' → ⊥
   final-not-trans (FBoxedVal x) = boxedval-not-trans x
@@ -89,7 +105,21 @@ module lemmas-progress-checks where
   final-sub-final (FIndet (IInl x)) (FHInl eps) = final-sub-final (FIndet x) eps
   final-sub-final (FBoxedVal (BVVal (VInr x))) (FHInr eps) = final-sub-final (FBoxedVal (BVVal x)) eps
   final-sub-final (FBoxedVal (BVInr x)) (FHInr eps) = final-sub-final (FBoxedVal x) eps
+  final-sub-final (FBoxedVal (BVProdCast x x₁)) (FHCast eps) = final-sub-final (FBoxedVal x₁) eps
   final-sub-final (FIndet (IInr x)) (FHInr eps) = final-sub-final (FIndet x) eps
+  final-sub-final (FBoxedVal (BVVal ())) (FHFst eps)
+  final-sub-final (FBoxedVal (BVVal ())) (FHSnd eps)
+  final-sub-final (FBoxedVal (BVVal (VPair x x₁))) (FHPair1 eps) = final-sub-final (FBoxedVal (BVVal x)) eps
+  final-sub-final (FBoxedVal (BVPair x x₁)) (FHPair1 eps) = final-sub-final (FBoxedVal x) eps
+  final-sub-final (FBoxedVal (BVVal (VPair x x₁))) (FHPair2 eps) = final-sub-final (FBoxedVal (BVVal x₁)) eps
+  final-sub-final (FBoxedVal (BVPair x x₁)) (FHPair2 eps) = final-sub-final (FBoxedVal x₁) eps
+  final-sub-final (FIndet (IFst x x₁ x₂)) (FHFst eps) = final-sub-final (FIndet x₂) eps
+  final-sub-final (FIndet (ISnd x x₁ x₂)) (FHSnd eps) = final-sub-final (FIndet x₂) eps
+  final-sub-final (FIndet (IPair1 x x₁)) (FHPair1 eps) = final-sub-final (FIndet x) eps
+  final-sub-final (FIndet (IPair2 x x₁)) (FHPair1 eps) = final-sub-final x eps
+  final-sub-final (FIndet (IPair1 x x₁)) (FHPair2 eps) = final-sub-final x₁ eps
+  final-sub-final (FIndet (IPair2 x x₁)) (FHPair2 eps) = final-sub-final (FIndet x₁) eps
+  final-sub-final (FIndet (ICastProd x x₁)) (FHCast eps) = final-sub-final (FIndet x₁) eps
   
   final-sub-not-trans : ∀{d d' d'' ε} →  d final → d == ε ⟦ d' ⟧ → d' →> d'' → ⊥
   final-sub-not-trans f sub step = final-not-trans (final-sub-final f sub) step

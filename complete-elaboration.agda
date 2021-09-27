@@ -37,7 +37,10 @@ module complete-elaboration where
     complete-elaboration-synth gc (ECAsc x ec) (ESAsc x₁)
       with complete-elaboration-ana gc ec x x₁
     ... | ih1 , _ , ih2 = DCCast ih1 (comp-ana gc x₁ ih1) x , x , ih2
-
+    complete-elaboration-synth gc (ECPair ec ec₁) (ESPair {Δ1 = Δ1} {Δ2 = Δ2} x x₁ x₂ x₃)
+      with complete-elaboration-synth gc ec x₂ | complete-elaboration-synth gc ec₁ x₃
+    ... | ih1 , ih2 , ih3 | ih1' , ih2' , ih3' = DCPair ih1 ih1' , TCProd ih2 ih2' , tr (λ qq → (qq ∪ Δ2) == ∅) (! ih3) ih3'
+    
     complete-elaboration-ana : ∀{e τ τ' Γ Δ d} →
                                Γ gcomplete →
                                e ecomplete →

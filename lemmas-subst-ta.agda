@@ -42,6 +42,10 @@ module lemmas-subst-ta where
     binders-fresh (TAInl wt) (BUInl bu) (UBInl ub) apt = FInl (binders-fresh wt bu ub apt)
     binders-fresh (TAInr wt) (BUInr bu) (UBInr ub) apt = FInr (binders-fresh wt bu ub apt)
     binders-fresh {Γ = Γ} (TACase wt x wt₁ x₁ wt₂) (BUCase bu bu₁ bu₂ x₂ x₃ x₄ x₅ x₆ x₇ x₈ x₉ x₁₀) (UBCase ub x₁₁ ub₁ x₁₂ ub₂) apt = FCase (binders-fresh wt bu ub apt) x₁₁ (binders-fresh wt₁ bu₁ ub₁ (apart-extend1 Γ x₁₁ apt)) x₁₂ (binders-fresh wt₂ bu₂ ub₂ (apart-extend1 Γ x₁₂ apt))
+    binders-fresh (TAPlus wt wt₁) () ub apt
+    binders-fresh (TAPair wt wt₁) (BUPair bu bu₁ x) (UBPair ub ub₁) apt = FPair (binders-fresh wt bu ub apt) (binders-fresh wt₁ bu₁ ub₁ apt)
+    binders-fresh (TAFst wt) (BUFst bu) (UBFst ub) apt = FFst (binders-fresh wt bu ub apt)
+    binders-fresh (TASnd wt) (BUSnd bu) (UBSnd ub) apt = FSnd (binders-fresh wt bu ub apt)
     
   -- the substition lemma for preservation
   lem-subst : ∀{Δ Γ x τ1 d1 τ d2} →
@@ -91,8 +95,9 @@ module lemmas-subst-ta where
   ... | Inr x≠z with natEQ x y
   ... | Inl refl = abort (y≠x refl)
   ... | Inr x≠y = TACase (lem-subst apt bd bu wt1 wt2) x₃ (lem-subst (apart-extend1 Γ x≠y apt) bd₁ bu (exchange-ta-Γ x≠y wt3) (weaken-ta (binders-fresh wt2 bu x₁ x₃) wt2)) x₄ (lem-subst (apart-extend1 Γ x≠z apt) bd₂ bu (exchange-ta-Γ x≠z wt4) (weaken-ta (binders-fresh wt2 bu x₂ x₄) wt2))
-
-  
+  lem-subst apt (BDPair bd bd₁) bu (TAPair wt1 wt3) wt2 = TAPair (lem-subst apt bd bu wt1 wt2) (lem-subst apt bd₁ bu wt3 wt2)
+  lem-subst apt (BDFst bd) bu (TAFst wt1) wt2 = TAFst (lem-subst apt bd bu wt1 wt2)
+  lem-subst apt (BDSnd bd) bu (TASnd wt1) wt2 = TASnd (lem-subst apt bd bu wt1 wt2)
 
   lem-subst-cast-sta : ∀{Δ Γ x τ1 τ2 σ Γ'} →
                        x # Γ →
@@ -162,3 +167,6 @@ module lemmas-subst-ta where
   lem-subst-cast-ta apt (BUNEHole bu x₂) con (TANEHole x wt x₁) = TANEHole x (lem-subst-cast-ta apt bu con wt) (lem-subst-cast-sta apt con x₁)
   lem-subst-cast-ta apt (BUCast bu) con (TACast wt x) = TACast (lem-subst-cast-ta apt bu con wt) x
   lem-subst-cast-ta apt (BUFailedCast bu) con (TAFailedCast wt x x₁ x₂) = TAFailedCast (lem-subst-cast-ta apt bu con wt) x x₁ x₂
+  lem-subst-cast-ta apt (BUPair bu bu₁ x) con (TAPair wt wt₁) = TAPair (lem-subst-cast-ta apt bu con wt) (lem-subst-cast-ta apt bu₁ con wt₁)
+  lem-subst-cast-ta apt (BUFst bu) con (TAFst wt) = TAFst (lem-subst-cast-ta apt bu con wt)
+  lem-subst-cast-ta apt (BUSnd bu) con (TASnd wt) = TASnd (lem-subst-cast-ta apt bu con wt)

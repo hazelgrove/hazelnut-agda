@@ -17,14 +17,14 @@ module disjointness where
     elab-new-disjoint-synth (HNPlus hn hn₁) (ESPlus apt x x₁ x₂) = disjoint-parts (elab-new-disjoint-ana hn x₁) (elab-new-disjoint-ana hn₁ x₂)
     elab-new-disjoint-synth (HNAsc hn) (ESAsc x) = elab-new-disjoint-ana hn x
     elab-new-disjoint-synth HNVar (ESVar x₁) = empty-disj (■ (_ , _ , _))
-    elab-new-disjoint-synth (HNLam1 hn) ()
     elab-new-disjoint-synth (HNLam2 hn) (ESLam x₁ exp) = elab-new-disjoint-synth hn exp
     elab-new-disjoint-synth (HNHole x) ESEHole = disjoint-singles x
     elab-new-disjoint-synth (HNNEHole x hn) (ESNEHole x₁ exp) = disjoint-parts (disjoint-singles x) (elab-new-disjoint-synth hn exp)
     elab-new-disjoint-synth (HNAp hn hn₁) (ESAp x x₁ x₂ x₃ x₄ x₅) =
                                             disjoint-parts (elab-new-disjoint-ana hn x₄)
                                                   (elab-new-disjoint-ana hn₁ x₅)
-
+    elab-new-disjoint-synth (HNPair hn hn₁) (ESPair x x₁ exp exp₁) = disjoint-parts (elab-new-disjoint-synth hn exp) (elab-new-disjoint-synth hn₁ exp₁)
+    
     elab-new-disjoint-ana : ∀{e u τ d Δ Γ Γ' τ' τ2} →
                             hole-name-new e u →
                             Γ ⊢ e ⇐ τ ~> d :: τ2 ⊣ Δ →
@@ -57,7 +57,8 @@ module disjointness where
     elab-disjoint-new-synth {Γ = Γ} ESEHole disj = HNHole (singles-notequal disj)
     elab-disjoint-new-synth {Γ = Γ} (ESNEHole {u = u} {Δ = Δ} x ex) disj = HNNEHole (singles-notequal (disjoint-union1 {Γ2 = Δ} disj)) (elab-disjoint-new-synth ex (disjoint-union2 {Γ1 = ■ (u , Γ , ⦇-⦈)} {Γ2 = Δ} disj))
     elab-disjoint-new-synth (ESAsc x) disj = HNAsc (elab-disjoint-new-ana x disj)
-
+    elab-disjoint-new-synth (ESPair {Δ1 = Δ1} {Δ2 = Δ2} x x₁ x₂ x₃) disj = HNPair (elab-disjoint-new-synth x₂ (disjoint-union1 {Γ1 = Δ1} {Γ2 = Δ2} disj)) (elab-disjoint-new-synth x₃ (disjoint-union2 {Γ1 = Δ1} {Γ2 = Δ2} disj))
+    
     elab-disjoint-new-ana : ∀{e τ d Δ u Γ Γ' τ2 τ'} →
                             Γ ⊢ e ⇐ τ ~> d :: τ2 ⊣ Δ →
                             Δ ## (■ (u , Γ' , τ')) →
@@ -82,6 +83,9 @@ module disjointness where
     HInl   : ∀{e H} → holes e H → holes (inl e) H
     HInr   : ∀{e H} → holes e H → holes (inr e) H
     HCase  : ∀{e x e1 y e2 H H1 H2} → holes e H → holes e1 H1 → holes e2 H2 → holes (case e x e1 y e2) (H ∪ (H1 ∪ H2))
+    HPair  : ∀{e1 e2 H1 H2} → holes e1 H1 → holes e2 H2 → holes ⟨ e1 , e2 ⟩ (H1 ∪ H2)
+    HFst   : ∀{e H} → holes e H → holes (fst e) H
+    HSnd   : ∀{e H} → holes e H → holes (snd e) H
     HEHole : ∀{u} → holes (⦇-⦈[ u ]) (■ (u , <>))
     HNEHole : ∀{e u H} → holes e H → holes (⦇⌜ e ⌟⦈[ u ]) (H ,, (u , <>))
 
@@ -110,6 +114,12 @@ module disjointness where
   ... | (h , d) = h , HInr d
   find-holes (case e x e₁ x₁ e₂) with find-holes e | find-holes e₁ | find-holes e₂
   ... | (h , d) | (h1 , d1) | (h2 , d2) = (h ∪ (h1 ∪ h2)) , HCase d d1 d2
+  find-holes ⟨ e , e₁ ⟩ with find-holes e | find-holes e₁
+  ... | (h , d) | (h1 , d1) = h ∪ h1 , HPair d d1
+  find-holes (fst e) with find-holes e
+  ... | (h , d) = h , HFst d
+  find-holes (snd e) with find-holes e
+  ... | (h , d) = h , HSnd d
   
   -- if a hole name is new then it's apart from the collection of hole
   -- names
@@ -126,7 +136,10 @@ module disjointness where
   lem-apart-new (HInl h) (HNInl hn) = lem-apart-new h hn
   lem-apart-new (HInr h) (HNInr hn) = lem-apart-new h hn
   lem-apart-new (HCase {H = H} {H1 = H1} {H2 = H2} h h₁ h₂) (HNCase {u = u'} hn hn₁ hn₂) = apart-parts H (H1 ∪ H2) u' (lem-apart-new h hn) (apart-parts H1 H2 u' (lem-apart-new h₁ hn₁) (lem-apart-new h₂ hn₂))
-
+  lem-apart-new (HPair {H1 = H1} {H2 = H2} h h₁) (HNPair {u = u} hn hn₁) = apart-parts H1 H2 u (lem-apart-new h hn) (lem-apart-new h₁ hn₁)
+  lem-apart-new (HFst h) (HNFst hn) = lem-apart-new h hn
+  lem-apart-new (HSnd h) (HNSnd hn) = lem-apart-new h hn
+  
   -- if the holes of two expressions are disjoint, so are their collections
   -- of hole names
   holes-disjoint-disjoint : ∀{e1 e2 H1 H2} →
@@ -146,7 +159,9 @@ module disjointness where
   holes-disjoint-disjoint (HInl he1) he2 (HDInl hd) = holes-disjoint-disjoint he1 he2 hd
   holes-disjoint-disjoint (HInr he1) he2 (HDInr hd) = holes-disjoint-disjoint he1 he2 hd
   holes-disjoint-disjoint (HCase he1 he3 he4) he2 (HDCase hd hd₁ hd₂) = disjoint-parts (holes-disjoint-disjoint he1 he2 hd) (disjoint-parts (holes-disjoint-disjoint he3 he2 hd₁) (holes-disjoint-disjoint he4 he2 hd₂))
-  
+  holes-disjoint-disjoint (HPair he1 he3) he2 (HDPair hd hd₁) = disjoint-parts (holes-disjoint-disjoint he1 he2 hd) (holes-disjoint-disjoint he3 he2 hd₁)
+  holes-disjoint-disjoint (HFst he1) he2 (HDFst hd) = holes-disjoint-disjoint he1 he2 hd
+  holes-disjoint-disjoint (HSnd he1) he2 (HDSnd hd) = holes-disjoint-disjoint he1 he2 hd
 
   -- the holes of an expression have the same domain as the context
   -- produced during expansion; that is, we don't add anything we don't
@@ -176,7 +191,7 @@ module disjointness where
     holes-delta-synth (HAp h h₁) (ESAp x x₁ x₂ x₃ x₄ x₅) = dom-union (holes-disjoint-disjoint h h₁ x) (holes-delta-ana h x₄) (holes-delta-ana h₁ x₅)
     holes-delta-synth (HEHole {u = u}) ESEHole = dom-single u
     holes-delta-synth (HNEHole {u = u} h) (ESNEHole x exp) = dom-union (lem-apart-sing-disj (lem-apart-new h (elab-disjoint-new-synth exp x))) (dom-single u) (holes-delta-synth h exp)
-    
+    holes-delta-synth (HPair h h₁) (ESPair x x₁ exp exp₁) = dom-union (holes-disjoint-disjoint h h₁ x) (holes-delta-synth h exp) (holes-delta-synth h₁ exp₁)
 
   -- this is the main result of this file:
   --

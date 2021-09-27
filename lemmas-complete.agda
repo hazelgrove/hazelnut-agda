@@ -20,7 +20,12 @@ module lemmas-complete where
   lem-ind-comp (DCInr x comp) (IInr ind) = lem-ind-comp comp ind
   lem-ind-comp (DCCase comp comp₁ comp₂) (ICase x x₁ x₂ ind) = lem-ind-comp comp ind
   lem-ind-comp (DCCast comp x x₁) (ICastSum x₂ ind) = lem-ind-comp comp ind
-
+  lem-ind-comp (DCPair comp comp₁) (IPair1 ind x) = lem-ind-comp comp ind
+  lem-ind-comp (DCPair comp comp₁) (IPair2 x ind) = lem-ind-comp comp₁ ind
+  lem-ind-comp (DCFst comp) (IFst x x₁ ind) = lem-ind-comp comp ind
+  lem-ind-comp (DCSnd comp) (ISnd x x₁ ind) = lem-ind-comp comp ind
+  lem-ind-comp (DCCast comp x x₁) (ICastProd x₂ ind) = lem-ind-comp comp ind
+  
   -- complete types that are consistent are equal
   complete-consistency : ∀{τ1 τ2} → τ1 ~ τ2 → τ1 tcomplete → τ2 tcomplete → τ1 == τ2
   complete-consistency TCRefl TCNum comp2 = refl
@@ -31,6 +36,11 @@ module lemmas-complete where
    with complete-consistency consis comp1 comp3 | complete-consistency consis₁ comp2 comp4
   ... | refl | refl = refl
   complete-consistency (TCSum consis consis₁) (TCSum comp1 comp2) (TCSum comp3 comp4)
+    with complete-consistency consis comp1 comp3 | complete-consistency consis₁ comp2 comp4
+  ... | refl | refl = refl
+  complete-consistency TCRefl (TCProd comp comp₁) comp2 = refl
+  complete-consistency TCHole2 () comp2
+  complete-consistency (TCProd consis consis₁) (TCProd comp1 comp2) (TCProd comp3 comp4)
     with complete-consistency consis comp1 comp3 | complete-consistency consis₁ comp2 comp4
   ... | refl | refl = refl
   
@@ -55,13 +65,20 @@ module lemmas-complete where
   complete-ta gc (TACase wt apt₁ wt₁ apt₂ wt₂) (DCCase comp comp₁ comp₂)
     with complete-ta gc wt comp
   ... | TCSum τc1 τc2 =  complete-ta (gcomp-extend gc τc1 apt₁) wt₁ comp₁ 
- 
+  complete-ta gc (TAPair wt wt₁) (DCPair comp comp₁) = TCProd (complete-ta gc wt comp) (complete-ta gc wt₁ comp₁)
+  complete-ta gc (TAFst wt) (DCFst comp)
+    with complete-ta gc wt comp
+  ... | TCProd τc1 τc2 = τc1
+  complete-ta gc (TASnd wt) (DCSnd comp)
+    with complete-ta gc wt comp
+  ... | TCProd τc1 τc2 = τc2
+  
   -- a well typed term synthesizes a complete type
   comp-synth : ∀{Γ e τ} →
-                   Γ gcomplete →
-                   e ecomplete →
-                   Γ ⊢ e => τ →
-                   τ tcomplete
+               Γ gcomplete →
+               e ecomplete →
+               Γ ⊢ e => τ →
+               τ tcomplete
   comp-synth gc ec SNum = TCNum
   comp-synth gc ec (SPlus x x₁ x₂) = TCNum
   comp-synth gc (ECAsc x ec) (SAsc x₁) = x
@@ -73,4 +90,6 @@ module lemmas-complete where
   comp-synth gc () SEHole
   comp-synth gc () (SNEHole _ wt)
   comp-synth gc (ECLam2 ec x₁) (SLam x₂ wt) = TCArr x₁ (comp-synth (gcomp-extend gc x₁ x₂) ec wt)
-  
+  comp-synth gc (ECPair ec ec₁) (SPair x wt wt₁)
+    with comp-synth gc ec wt | comp-synth gc ec₁ wt₁
+  ... | τc1 | τc2 = TCProd τc1 τc2

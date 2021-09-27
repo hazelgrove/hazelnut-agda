@@ -7,3 +7,4 @@ module grounding where
               ((τ2 ground) × (τ1 ~ τ2) × (τ1 ≠ τ2))
   grounding (MGArr x) = GArrHole , TCArr TCHole1 TCHole1 , x
   grounding (MGSum x) = GSumHole , TCSum TCHole1 TCHole1 , x
+  grounding (MGProd x) = GProdHole , TCProd TCHole1 TCHole1 , x

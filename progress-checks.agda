@@ -30,6 +30,11 @@ module progress-checks where
   boxedval-not-indet (BVInl bv) (IInl ind) = boxedval-not-indet bv ind
   boxedval-not-indet (BVInr bv) (IInr ind) = boxedval-not-indet bv ind
   boxedval-not-indet (BVSumCast x bv) (ICastSum x₁ ind) = boxedval-not-indet bv ind
+  boxedval-not-indet (BVVal (VPair x x₂)) (IPair1 ind x₁) = boxedval-not-indet (BVVal x) ind
+  boxedval-not-indet (BVVal (VPair x x₂)) (IPair2 x₁ ind) = boxedval-not-indet (BVVal x₂) ind
+  boxedval-not-indet (BVPair bv bv₁) (IPair1 ind x) = boxedval-not-indet bv ind
+  boxedval-not-indet (BVPair bv bv₁) (IPair2 x ind) = boxedval-not-indet bv₁ ind
+  boxedval-not-indet (BVProdCast x bv) (ICastProd x₁ ind) = boxedval-not-indet bv ind
   
   -- boxed values don't step
   boxedval-not-step : ∀{d} → d boxedval → (Σ[ d' ∈ ihexp ] (d ↦ d')) → ⊥
@@ -55,6 +60,13 @@ module progress-checks where
   boxedval-not-step (BVVal (VInr x)) (_ , Step (FHInr x₁) x₂ (FHInr x₃)) = boxedval-not-step (BVVal x) (_ , Step x₁ x₂ x₃)
   boxedval-not-step (BVInl bv) (_ , Step (FHInl x) x₁ (FHInl x₂)) = boxedval-not-step bv (_ , Step x x₁ x₂)
   boxedval-not-step (BVInr bv) (_ , Step (FHInr x) x₁ (FHInr x₂)) = boxedval-not-step bv (_ , Step x x₁ x₂)
+  boxedval-not-step (BVVal (VPair x x₁)) (_ , Step (FHPair1 x₂) x₃ (FHPair1 x₄)) = boxedval-not-step (BVVal x) (_ , Step x₂ x₃ x₄)
+  boxedval-not-step (BVVal (VPair x x₁)) (_ , Step (FHPair2 x₂) x₃ (FHPair2 x₄)) = boxedval-not-step (BVVal x₁) (_ , (Step x₂ x₃ x₄))
+  boxedval-not-step (BVPair bv bv₁) (_ , Step (FHPair1 x) x₁ (FHPair1 x₂)) = boxedval-not-step bv (_ , Step x x₁ x₂)
+  boxedval-not-step (BVPair bv bv₁) (_ , Step (FHPair2 x) x₁ (FHPair2 x₂)) = boxedval-not-step bv₁ (_ , Step x x₁ x₂)
+  boxedval-not-step (BVProdCast x bv) (_ , Step FHOuter ITCastID FHOuter) = x refl
+  boxedval-not-step (BVProdCast x bv) (_ , Step (FHCast x₁) x₂ (FHCast x₃)) = boxedval-not-step bv (_ , Step x₁ x₂ x₃)
+  boxedval-not-step (BVHoleCast GProdHole bv) (_ , Step FHOuter (ITGround (MGProd x)) FHOut\er) = x refl
   
   mutual
     -- indeterminates don't step
@@ -102,8 +114,25 @@ module progress-checks where
     indet-not-step (ICastGroundHole GSumHole ind) (_ , Step FHOuter (ITGround (MGSum x)) FHOuter) = x refl
     indet-not-step (ICastHoleGround x ind GNum) (_ , Step FHOuter (ITExpand ()) FHOuter)
     indet-not-step (ICastHoleGround x ind GSumHole) (_ , Step FHOuter (ITExpand (MGSum x₁)) FHOuter) = x₁ refl
-
+    indet-not-step (IPair1 ind x) (_ , Step (FHPair1 x₁) x₂ (FHPair1 x₃)) = indet-not-step ind (_ , Step x₁ x₂ x₃)
+    indet-not-step (IPair1 ind x) (_ , Step (FHPair2 x₁) x₂ (FHPair2 x₃)) = final-not-step x (_ , Step x₁ x₂ x₃)
+    indet-not-step (IPair2 x ind) (_ , Step (FHPair1 x₁) x₂ (FHPair1 x₃)) = final-not-step x (_ , Step x₁ x₂ x₃)
+    indet-not-step (IPair2 x ind) (_ , Step (FHPair2 x₁) x₂ (FHPair2 x₃)) = indet-not-step ind (_ , Step x₁ x₂ x₃)
+    indet-not-step (IFst x x₁ ind) (_ , Step FHOuter ITFstPair FHOuter) = x _ _ refl
+    indet-not-step (IFst x x₁ ind) (_ , Step (FHFst x₂) x₃ (FHFst x₄)) = indet-not-step ind (_ , Step x₂ x₃ x₄)
+    indet-not-step (ISnd x x₁ ind) (_ , Step FHOuter ITSndPair FHOuter) = x _ _ refl
+    indet-not-step (ISnd x x₁ ind) (_ , Step (FHSnd x₂) x₃ (FHSnd x₄)) = indet-not-step ind (_ , Step x₂ x₃ x₄)
+    indet-not-step (ICastGroundHole GProdHole ind) (_ , Step FHOuter (ITGround (MGProd x)) FHOuter) = x refl
+    indet-not-step (ICastHoleGround x ind GProdHole) (_ , Step FHOuter (ITExpand (MGProd x₁)) FHOuter) = x₁ refl
+    indet-not-step (IPair1 ind x) (_ , Step FHOuter () FHOuter)
+    indet-not-step (IPair2 x ind) (_ , Step FHOuter () FHOuter)
+    indet-not-step (IFst x x₁ ind) (_ , Step FHOuter ITFstCast FHOuter) = x₁ _ _ _ _ _ refl
+    indet-not-step (ISnd x x₁ ind) (_ , Step FHOuter ITSndCast FHOuter) = x₁ _ _ _ _ _ refl
+    indet-not-step (ICastProd x ind) (_ , Step FHOuter ITCastID FHOuter) = x refl
+    indet-not-step (ICastProd x ind) (_ , Step (FHCast x₁) x₂ (FHCast x₃)) = indet-not-step ind (_ , Step x₁ x₂ x₃)
+    
     -- final expressions don't step
     final-not-step : ∀{d} → d final → Σ[ d' ∈ ihexp ] (d ↦ d') → ⊥
     final-not-step (FBoxedVal x) stp = boxedval-not-step x stp
     final-not-step (FIndet x) stp = indet-not-step x stp
+ 

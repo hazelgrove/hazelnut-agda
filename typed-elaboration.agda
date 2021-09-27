@@ -30,7 +30,9 @@ module typed-elaboration where
     typed-elaboration-synth (ESAsc x)
       with typed-elaboration-ana x
     ... | con , ih = TACast ih con
-
+    typed-elaboration-synth (ESPair x x₁ x₂ x₃)
+      with typed-elaboration-synth x₂ | typed-elaboration-synth x₃
+    ... | ih1 | ih2 = TAPair (weaken-ta-Δ1 x₁ ih1) (weaken-ta-Δ2 x₁ ih2)
     typed-elaboration-ana : {Γ : tctx} {e : hexp} {τ τ' : htyp} {d : ihexp} {Δ : hctx} →
                             Γ ⊢ e ⇐ τ ~> d :: τ' ⊣ Δ →
                             (τ' ~ τ) × (Δ , Γ ⊢ d :: τ')

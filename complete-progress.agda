@@ -34,4 +34,11 @@ module complete-progress where
     with complete-progress wt comp
   ... | V v = V (VInr v)
   ... | S (_ , Step x₂ x₃ x₄) = S (_ , Step (FHInr x₂) x₃ (FHInr x₄))
-
+  complete-progress (TAPair wt wt₁) (DCPair comp comp₁) | BV (BVPair x x₁)
+    with complete-progress wt comp | complete-progress wt₁ comp₁
+  ... | V v | V v₁ = V (VPair v v₁)
+  ... | V v | S (_ , Step x₁ x₂ x₃) = S (_ , Step (FHPair2 x₁) x₂ (FHPair2 x₃))
+  ... | S (_ , Step x₁ x₂ x₃) | V v = S (_ , Step (FHPair1 x₁) x₂ (FHPair1 x₃))
+  ... | S (_ , Step x₁ x₂ x₃) | S (_ , Step x₄ x₅ x₆) = S (_ , Step (FHPair1 x₁) x₂ (FHPair1 x₃))
+  complete-progress (TACast wt x₁) (DCCast comp x₂ x₃) | BV (BVProdCast x x₄) = abort (x (complete-consistency x₁ x₂ x₃))
+  

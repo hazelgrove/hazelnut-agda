@@ -40,3 +40,13 @@ module type-assignment-unicity where
   type-assignment-unicity (TAFailedCast x x₁ x₂ x₃) (TAFailedCast y x₄ x₅ x₆)
     with type-assignment-unicity x y
   ... | refl = refl
+  type-assignment-unicity (TAPair x x₁) (TAPair y y₁)
+    with type-assignment-unicity x y
+  ... | refl with type-assignment-unicity x₁ y₁
+  ... | refl = refl
+  type-assignment-unicity (TAFst x) (TAFst y)
+    with type-assignment-unicity x y
+  ... | refl = refl
+  type-assignment-unicity (TASnd x) (TASnd y)
+    with type-assignment-unicity x y
+  ... | refl = refl

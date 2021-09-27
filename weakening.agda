@@ -33,6 +33,9 @@ module weakening where
     weaken-ta-Δ1 {Δ1} {Δ2} {Γ} disj (TANEHole {Γ' = Γ'} {u = u} x wt x₁) = TANEHole (x∈∪l Δ1 Δ2 u _ x) (weaken-ta-Δ1 disj wt) (weaken-subst-Δ disj x₁)
     weaken-ta-Δ1 disj (TACast wt x) = TACast (weaken-ta-Δ1 disj wt) x
     weaken-ta-Δ1 disj (TAFailedCast wt x x₁ x₂) = TAFailedCast (weaken-ta-Δ1 disj wt) x x₁ x₂
+    weaken-ta-Δ1 disj (TAPair wt wt₁) = TAPair (weaken-ta-Δ1 disj wt) (weaken-ta-Δ1 disj wt₁)
+    weaken-ta-Δ1 disj (TAFst wt) = TAFst (weaken-ta-Δ1 disj wt)
+    weaken-ta-Δ1 disj (TASnd wt) = TASnd (weaken-ta-Δ1 disj wt)
     
   -- this is a little bit of a time saver. since ∪ is commutative on
   -- disjoint contexts, and we need that premise anyway in both positions,
@@ -63,6 +66,7 @@ module weakening where
     weaken-synth FRHEHole SEHole = SEHole
     weaken-synth (FRHNEHole frsh) (SNEHole x₁ wt) = SNEHole x₁ (weaken-synth frsh wt)
     weaken-synth (FRHAp frsh frsh₁) (SAp x₁ wt x₂ x₃) = SAp x₁ (weaken-synth frsh wt) x₂ (weaken-ana frsh₁ x₃)
+    weaken-synth (FRHPair frsh frsh₁) (SPair x wt wt₁) = SPair x (weaken-synth frsh wt) (weaken-synth frsh₁ wt₁)
 
     weaken-ana : ∀{x Γ e τ τ'} →
                  freshh x e →
@@ -118,3 +122,6 @@ module weakening where
       (exchange-ta-Γ {Γ = Γ} (flip x) (weaken-ta frsh₁ wt₁))
       (apart-extend1 Γ (flip x₁) x₃)
       (exchange-ta-Γ {Γ = Γ} (flip x₁) (weaken-ta frsh₂ wt₂))
+    weaken-ta (FPair frsh frsh₁) (TAPair wt wt₁) = TAPair (weaken-ta frsh wt) (weaken-ta frsh₁ wt₁)
+    weaken-ta (FFst frsh) (TAFst wt) = TAFst (weaken-ta frsh wt)
+    weaken-ta (FSnd frsh) (TASnd wt) = TASnd (weaken-ta frsh wt)

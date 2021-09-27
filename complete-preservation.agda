@@ -29,6 +29,9 @@ module complete-preservation where
   ... | Inl refl | Inr z≠x  = DCCase (cp-subst dc dc2 ) dc1 (cp-subst dc3 dc2)
   ... | Inr y≠x  | Inl refl = DCCase (cp-subst dc dc2) (cp-subst dc1 dc2) dc3
   ... | Inr y≠x  | Inr z≠x  = DCCase (cp-subst dc dc2) (cp-subst dc1 dc2) (cp-subst dc3 dc2)
+  cp-subst (DCPair dc1 dc3) dc2 = DCPair (cp-subst dc1 dc2) (cp-subst dc3 dc2)
+  cp-subst (DCFst dc1) dc2 = DCFst (cp-subst dc1 dc2)
+  cp-subst (DCSnd dc1) dc2 = DCSnd (cp-subst dc1 dc2)
   
   -- this just lets me pull the particular x out of a derivation; it's not
   -- bound in any of the constructors explicitly since it's only in the
@@ -78,12 +81,22 @@ module complete-preservation where
   cp-rhs (DCCase (DCInr x₂ dc) dc₁ dc₂) (TACase wt x wt₁ x₁ wt₂) (Step FHOuter ITCaseInr FHOuter) = cp-subst dc₂ dc
   cp-rhs (DCCase (DCCast dc (TCSum x₂ x₄) (TCSum x₃ x₅)) dc₁ dc₂) (TACase wt x wt₁ x₁ wt₂) (Step FHOuter ITCaseCast FHOuter) =  DCCase dc (cp-subst dc₁ (DCCast DCVar x₂ x₃)) (cp-subst dc₂ (DCCast DCVar x₄ x₅))
   cp-rhs (DCCase dc dc₁ dc₂) (TACase wt x wt₁ x₁ wt₂) (Step (FHCase x₂) x₃ (FHCase x₄)) = DCCase (cp-rhs dc wt (Step x₂ x₃ x₄)) dc₁ dc₂
+  cp-rhs (DCInl x dc) (TAInl dc₁) (Step FHOuter () FHOuter)
+  cp-rhs (DCInr x dc) (TAInr dc₁) (Step FHOuter () FHOuter)
+  cp-rhs (DCPair dc dc₁) (TAPair dc₂ dc₃) (Step (FHPair1 x₁) x₂ (FHPair1 x₃)) = DCPair (cp-rhs dc dc₂ (Step x₁ x₂ x₃)) dc₁
+  cp-rhs (DCPair dc dc₁) (TAPair dc₂ dc₃) (Step (FHPair2 x₁) x₂ (FHPair2 x₃)) = DCPair dc (cp-rhs dc₁ dc₃ (Step x₁ x₂ x₃))
+  cp-rhs (DCFst (DCPair dc dc₃)) (TAFst dc₁) (Step FHOuter ITFstPair FHOuter) = dc
+  cp-rhs (DCFst (DCCast dc (TCProd x x₁) (TCProd x₃ x₄))) (TAFst dc₁) (Step FHOuter ITFstCast FHOuter) = DCCast (DCFst dc) x x₃
+  cp-rhs (DCFst dc) (TAFst dc₁) (Step (FHFst x₁) x₂ (FHFst x₃)) = DCFst (cp-rhs dc dc₁ (Step x₁ x₂ x₃))
+  cp-rhs (DCSnd (DCPair dc dc₂)) (TASnd dc₁) (Step FHOuter ITSndPair FHOuter) = dc₂
+  cp-rhs (DCSnd (DCCast dc (TCProd x x₁) (TCProd x₂ x₃))) (TASnd dc₁) (Step FHOuter ITSndCast FHOuter) = DCCast (DCSnd dc) x₁ x₃
+  cp-rhs (DCSnd dc) (TASnd dc₁) (Step (FHSnd x₁) x₂ (FHSnd x₃)) = DCSnd (cp-rhs dc dc₁ (Step x₁ x₂ x₃))
   
   -- this is the main result of this file.
   complete-preservation : ∀{d τ d' Δ} →
-             binders-unique d →
-             d dcomplete →
-             Δ , ∅ ⊢ d :: τ →
-             d ↦ d' →
-             (Δ , ∅ ⊢ d' :: τ) × (d' dcomplete)
+                          binders-unique d →
+                          d dcomplete →
+                          Δ , ∅ ⊢ d :: τ →
+                          d ↦ d' →
+                          (Δ , ∅ ⊢ d' :: τ) × (d' dcomplete)
   complete-preservation bd dc wt stp = preservation bd wt stp , cp-rhs dc wt stp

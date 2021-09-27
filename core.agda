@@ -9,10 +9,12 @@ module core where
     ⦇-⦈   : htyp
     _==>_ : htyp → htyp → htyp
     _⊕_   : htyp → htyp → htyp
+    _⊠_   : htyp → htyp → htyp
     
-  -- arrow type constructors bind very tightly
+  -- type constructors bind very tightly
   infixr 25  _==>_
   infixr 25 _⊕_
+  infixr 25 _⊠_
   
   -- external expressions
   data hexp : Set where
@@ -26,6 +28,9 @@ module core where
     inl     : hexp → hexp
     inr     : hexp → hexp
     case    : hexp → Nat → hexp → Nat → hexp → hexp
+    ⟨_,_⟩   : hexp → hexp → hexp
+    fst     : hexp → hexp
+    snd     : hexp → hexp
     ⦇-⦈[_]   : Nat → hexp
     ⦇⌜_⌟⦈[_] : hexp → Nat → hexp
 
@@ -49,6 +54,9 @@ module core where
       inl       : htyp → ihexp → ihexp
       inr       : htyp → ihexp → ihexp
       case      : ihexp → Nat → ihexp → Nat → ihexp → ihexp
+      ⟨_,_⟩     : ihexp → ihexp → ihexp
+      fst       : ihexp → ihexp
+      snd       : ihexp → ihexp
       ⦇-⦈⟨_⟩     : (Nat × env) → ihexp
       ⦇⌜_⌟⦈⟨_⟩   : ihexp → (Nat × env) → ihexp
       _⟨_⇒_⟩     : ihexp → htyp → htyp → ihexp
@@ -71,6 +79,10 @@ module core where
               τ1 ~ τ1' →
               τ2 ~ τ2' →
               τ1 ⊕ τ2 ~ τ1' ⊕ τ2'
+    TCProd  : {τ1 τ2 τ1' τ2' : htyp} →
+              τ1 ~ τ1' →
+              τ2 ~ τ2' →
+              τ1 ⊠ τ2 ~ τ1' ⊠ τ2'
   
   -- type inconsistency
   _~̸_ : htyp → htyp → Set
@@ -85,6 +97,11 @@ module core where
   data _▸sum_ : htyp → htyp → Set where
     MSHole : ⦇-⦈ ▸sum ⦇-⦈ ⊕ ⦇-⦈
     MSSum  : {τ1 τ2 : htyp} → τ1 ⊕ τ2 ▸sum τ1 ⊕ τ2
+
+  -- matching for sums
+  data _▸prod_ : htyp → htyp → Set where
+    MPHole : ⦇-⦈ ▸prod ⦇-⦈ ⊕ ⦇-⦈
+    MPProd : {τ1 τ2 : htyp} → τ1 ⊕ τ2 ▸prod τ1 ⊕ τ2
     
   -- the type of hole contexts, i.e. Δs in the judgements
   hctx : Set
@@ -126,6 +143,16 @@ module core where
              hole-name-new e1 u →
              hole-name-new e2 u →
              hole-name-new (case e x e1 y e2) u
+    HNPair : ∀{e1 e2 u} →
+             hole-name-new e1 u →
+             hole-name-new e2 u →
+             hole-name-new ⟨ e1 , e2 ⟩ u       
+    HNFst  : ∀{e u} →
+             hole-name-new e u →
+             hole-name-new (fst e) u
+    HNSnd  : ∀{e u} →
+             hole-name-new e u →
+             hole-name-new (snd e) u
     HNHole : ∀{u u'} →
              u' ≠ u →
              hole-name-new (⦇-⦈[ u' ]) u
@@ -166,6 +193,16 @@ module core where
              holes-disjoint e1 e3 →
              holes-disjoint e2 e3 →
              holes-disjoint (case e x e1 y e2) e3
+    HDPair : ∀{e1 e2 e3} →
+             holes-disjoint e1 e3 →
+             holes-disjoint e2 e3 →
+             holes-disjoint ⟨ e1 , e2 ⟩ e3
+    HDFst  : ∀{e1 e2} →
+             holes-disjoint e1 e2 →
+             holes-disjoint (fst e1) e2
+    HDSnd  : ∀{e1 e2} →
+             holes-disjoint e1 e2 →
+             holes-disjoint (snd e1) e2
     HDHole : ∀{u e2} →
              hole-name-new e2 u →
              holes-disjoint (⦇-⦈[ u ]) e2
@@ -201,6 +238,19 @@ module core where
                 τ1 ▸arr τ2 ==> τ →
                 Γ ⊢ e2 <= τ2 →
                 Γ ⊢ (e1 ∘ e2) => τ
+      SPair   : ∀{e1 e2 τ1 τ2 Γ} →
+                holes-disjoint e1 e2 →
+                Γ ⊢ e1 => τ1 →
+                Γ ⊢ e2 => τ2 →
+                Γ ⊢ ⟨ e1 , e2 ⟩ => τ1 ⊠ τ2
+      SFst    : ∀{e τ τ1 τ2 Γ} →
+                Γ ⊢ e => τ →
+                τ ▸prod τ1 ⊠ τ2 →
+                Γ ⊢ fst e => τ1
+      SSnd    : ∀{e τ τ1 τ2 Γ} →
+                Γ ⊢ e => τ →
+                τ ▸prod τ1 ⊠ τ2 →
+                Γ ⊢ snd e => τ2
       SEHole  : {Γ : tctx} {u : Nat} → Γ ⊢ ⦇-⦈[ u ] => ⦇-⦈
       SNEHole : {Γ : tctx} {e : hexp} {τ : htyp} {u : Nat} →
                 hole-name-new e u →
@@ -241,8 +291,9 @@ module core where
   -- those types without holes
   data _tcomplete : htyp → Set where
     TCNum : num tcomplete
-    TCArr : ∀{τ1 τ2} → τ1 tcomplete → τ2 tcomplete → (τ1 ==> τ2) tcomplete
-    TCSum : ∀{τ1 τ2} → τ1 tcomplete → τ2 tcomplete → (τ1 ⊕ τ2) tcomplete
+    TCArr  : ∀{τ1 τ2} → τ1 tcomplete → τ2 tcomplete → (τ1 ==> τ2) tcomplete
+    TCSum  : ∀{τ1 τ2} → τ1 tcomplete → τ2 tcomplete → (τ1 ⊕ τ2) tcomplete
+    TCProd : ∀{τ1 τ2} → τ1 tcomplete → τ2 tcomplete → (τ1 ⊠ τ2) tcomplete
 
   -- those external expressions without holes
   data _ecomplete : hexp → Set where
@@ -257,6 +308,9 @@ module core where
     ECInr  : ∀{e} → e ecomplete → (inr e) ecomplete
     ECCase : ∀{e x e1 y e2} → e ecomplete → e1 ecomplete → e2 ecomplete →
              (case e x e1 y e2) ecomplete
+    ECPair : ∀{e1 e2} → e1 ecomplete → e2 ecomplete → ⟨ e1 , e2 ⟩ ecomplete
+    ECFst  : ∀{e} → e ecomplete → (fst e) ecomplete
+    ECSnd  : ∀{e} → e ecomplete → (snd e) ecomplete
              
   -- those internal expressions without holes
   data _dcomplete : ihexp → Set where
@@ -269,6 +323,9 @@ module core where
     DCInr  : ∀{τ d} → τ tcomplete → d dcomplete → (inr τ d) dcomplete
     DCCase : ∀{d x d1 y d2} → d dcomplete → d1 dcomplete → d2 dcomplete →
              (case d x d1 y d2) dcomplete
+    DCPair : ∀{d1 d2} → d1 dcomplete → d2 dcomplete → ⟨ d1 , d2 ⟩ dcomplete
+    DCFst  : ∀{d} → d dcomplete → (fst d) dcomplete
+    DCSnd  : ∀{d} → d dcomplete → (snd d) dcomplete
     DCCast : ∀{d τ1 τ2} → d dcomplete → τ1 tcomplete → τ2 tcomplete →
              (d ⟨ τ1 ⇒ τ2 ⟩) dcomplete
 
@@ -288,6 +345,9 @@ module core where
     CIInr    : ∀{τ d} → cast-id d → cast-id (inr τ d)
     CICase   : ∀{d x d1 y d2} → cast-id d → cast-id d1 → cast-id d2 →
                cast-id (case d x d1 y d2)
+    CIPair   : ∀{d1 d2} → cast-id d1 → cast-id d2 → cast-id ⟨ d1 , d2 ⟩
+    CIFst    : ∀{d} → cast-id d → cast-id (fst d)
+    CISnd    : ∀{d} → cast-id d → cast-id (snd d)
     CIHole   : ∀{u} → cast-id (⦇-⦈⟨ u ⟩)
     CINEHole : ∀{d u} → cast-id d → cast-id (⦇⌜ d ⌟⦈⟨ u ⟩)
     CICast   : ∀{d τ} → cast-id d → cast-id (d ⟨ τ ⇒ τ ⟩)
@@ -321,6 +381,22 @@ module core where
                Γ ⊢ e1 ⇐ (τ2 ==> τ) ~> d1 :: τ1' ⊣ Δ1 →
                Γ ⊢ e2 ⇐ τ2 ~> d2 :: τ2' ⊣ Δ2 →
                Γ ⊢ e1 ∘ e2 ⇒ τ ~> (d1 ⟨ τ1' ⇒ τ2 ==> τ ⟩) ∘ (d2 ⟨ τ2' ⇒ τ2 ⟩) ⊣ (Δ1 ∪ Δ2)
+      ESPair : ∀{Γ e1 τ1 d1 Δ1 e2 τ2 d2 Δ2} →
+               holes-disjoint e1 e2 →
+               Δ1 ## Δ2 →
+               Γ ⊢ e1 ⇒ τ1 ~> d1 ⊣ Δ1 →
+               Γ ⊢ e2 ⇒ τ2 ~> d2 ⊣ Δ2 →
+               Γ ⊢ ⟨ e1 , e2 ⟩ ⇒ τ1 ⊠ τ2 ~> ⟨ d1 , d2 ⟩ ⊣ (Δ1 ∪ Δ2)
+      ESFst  : ∀{Γ e τ τ' d τ1 τ2 Δ} →
+               Γ ⊢ e => τ →
+               τ ▸prod τ1 ⊠ τ2 →
+               Γ ⊢ e ⇐ τ1 ⊠ τ2 ~> d :: τ' ⊣ Δ →
+               Γ ⊢ fst e ⇒ τ1 ~> fst (d ⟨ τ' ⇒ τ1 ⊠ τ2 ⟩) ⊣ Δ
+      ESSnd  : ∀{Γ e τ τ' d τ1 τ2 Δ} →
+               Γ ⊢ e => τ →
+               τ ▸prod τ1 ⊠ τ2 →
+               Γ ⊢ e ⇐ τ1 ⊠ τ2 ~> d :: τ' ⊣ Δ →
+               Γ ⊢ snd e ⇒ τ2 ~> snd (d ⟨ τ' ⇒ τ1 ⊠ τ2 ⟩) ⊣ Δ
       ESEHole  : ∀{Γ u} →
                  Γ ⊢ ⦇-⦈[ u ] ⇒ ⦇-⦈ ~> ⦇-⦈⟨ u , Id Γ ⟩ ⊣  ■ (u :: ⦇-⦈ [ Γ ])
       ESNEHole : ∀{Γ e τ d u Δ} →
@@ -376,9 +452,10 @@ module core where
 
   -- ground types
   data _ground : (τ : htyp) → Set where
-    GNum  : num ground
-    GArrHole : ⦇-⦈ ==> ⦇-⦈ ground
-    GSumHole : ⦇-⦈ ⊕ ⦇-⦈ ground
+    GNum      : num ground
+    GArrHole  : ⦇-⦈ ==> ⦇-⦈ ground
+    GSumHole  : ⦇-⦈ ⊕ ⦇-⦈ ground
+    GProdHole : ⦇-⦈ ⊠ ⦇-⦈ ground
     
   mutual
     -- substitution typing
@@ -421,6 +498,16 @@ module core where
                 y # Γ →
                 Δ , (Γ ,, (y , τ2)) ⊢ d2 :: τ →
                 Δ , Γ ⊢ case d x d1 y d2 :: τ
+      TAPair : ∀{Δ Γ d1 d2 τ1 τ2} →
+               Δ , Γ ⊢ d1 :: τ1 →
+               Δ , Γ ⊢ d2 :: τ2 →
+               Δ , Γ ⊢ ⟨ d1 , d2 ⟩ :: τ1 ⊠ τ2
+      TAFst   : ∀{Δ Γ d τ1 τ2} →
+                Δ , Γ ⊢ d :: τ1 ⊠ τ2 →
+                Δ , Γ ⊢ fst d :: τ1
+      TASnd   : ∀{Δ Γ d τ1 τ2} →
+                Δ , Γ ⊢ d :: τ1 ⊠ τ2 →
+                Δ , Γ ⊢ snd d :: τ2
       TAEHole : ∀{Δ Γ σ u Γ' τ} →
                 (u , (Γ' , τ)) ∈ Δ →
                 Δ , Γ ⊢ σ :s: Γ' →
@@ -462,6 +549,9 @@ module core where
   ... | Inl refl | Inr neq  = case ([ d / y ] d') x d1 z ([ d / y ] d2)
   ... | Inr neq  | Inl refl = case ([ d / y ] d') x ([ d / y ] d1) z d2
   ... | Inr neq1 | Inr neq2 = case ([ d / y ] d') x ([ d / y ] d1) z ([ d / y ] d2)
+  [ d / y ] ⟨ d1 , d2 ⟩ = ⟨ [ d / y ] d1 , [ d / y ] d2 ⟩
+  [ d / y ] (fst d') = fst ([ d / y ] d')
+  [ d / y ] (snd d') = snd ([ d / y ] d')
   [ d / y ] ⦇-⦈⟨ u , σ ⟩ = ⦇-⦈⟨ u , Subst d y σ ⟩
   [ d / y ] ⦇⌜ d' ⌟⦈⟨ u , σ  ⟩ =  ⦇⌜ [ d / y ] d' ⌟⦈⟨ u , Subst d y σ ⟩
   [ d / y ] (d' ⟨ τ1 ⇒ τ2 ⟩ ) = ([ d / y ] d') ⟨ τ1 ⇒ τ2 ⟩
@@ -474,16 +564,18 @@ module core where
 
   -- values
   data _val : (d : ihexp) → Set where
-    VNum : ∀{n} → (N n) val
-    VLam : ∀{x τ d} → (·λ x [ τ ] d) val
-    VInl : ∀{d τ} → d val → (inl τ d) val
-    VInr : ∀{d τ} → d val → (inr τ d) val
+    VNum  : ∀{n} → (N n) val
+    VLam  : ∀{x τ d} → (·λ x [ τ ] d) val
+    VInl  : ∀{d τ} → d val → (inl τ d) val
+    VInr  : ∀{d τ} → d val → (inr τ d) val
+    VPair : ∀{d1 d2} → d1 val → d2 val → ⟨ d1 , d2 ⟩ val
 
   -- boxed values
   data _boxedval : (d : ihexp) → Set where
     BVVal      : ∀{d} → d val → d boxedval
     BVInl      : ∀{d τ} → d boxedval → (inl τ d) boxedval
     BVInr      : ∀{d τ} → d boxedval → (inr τ d) boxedval
+    BVPair     : ∀{d1 d2} → d1 boxedval → d2 boxedval → ⟨ d1 , d2 ⟩ boxedval
     BVArrCast  : ∀{d τ1 τ2 τ3 τ4} →
                  τ1 ==> τ2 ≠ τ3 ==> τ4 →
                  d boxedval →
@@ -492,6 +584,10 @@ module core where
                  τ1 ⊕ τ2 ≠ τ3 ⊕ τ4 →
                  d boxedval →
                  d ⟨ (τ1 ⊕ τ2) ⇒ (τ3 ⊕ τ4) ⟩ boxedval
+    BVProdCast : ∀{d τ1 τ2 τ3 τ4} →
+                 τ1 ⊠ τ2 ≠ τ3 ⊠ τ4 →
+                 d boxedval →
+                 d ⟨ (τ1 ⊠ τ2) ⇒ (τ3 ⊠ τ4) ⟩ boxedval
     BVHoleCast : ∀{τ d} →
                  τ ground →
                  d boxedval →
@@ -529,6 +625,28 @@ module core where
                   d ≠ (d' ⟨(τ1 ⊕ τ2) ⇒ (τ1' ⊕ τ2')⟩)) →
                  d indet →
                  (case d x d1 y d2) indet
+      IPair1   : ∀{d1 d2} →
+                 d1 indet →
+                 d2 final →
+                 ⟨ d1 , d2 ⟩ indet
+      IPair2   : ∀{d1 d2} →
+                 d1 final →
+                 d2 indet →
+                 ⟨ d1 , d2 ⟩ indet
+      IFst     : ∀{d} →
+                 ((d1 d2 : ihexp) →
+                  d ≠ ⟨ d1 , d2 ⟩) →
+                 ((τ1 τ2 τ1' τ2' : htyp) (d' : ihexp) →
+                  d ≠ (d' ⟨(τ1 ⊠ τ2) ⇒ (τ1' ⊠ τ2')⟩)) →
+                 d indet →
+                 (fst d) indet
+      ISnd     : ∀{d} →
+                 ((d1 d2 : ihexp) →
+                  d ≠ ⟨ d1 , d2 ⟩) →
+                 ((τ1 τ2 τ1' τ2' : htyp) (d' : ihexp) →
+                  d ≠ (d' ⟨(τ1 ⊠ τ2) ⇒ (τ1' ⊠ τ2')⟩)) →
+                 d indet →
+                 (snd d) indet
       IEHole   : ∀{u σ} → ⦇-⦈⟨ u , σ ⟩ indet
       INEHole  : ∀{d u σ} →
                  d final →
@@ -541,6 +659,10 @@ module core where
                  τ1 ⊕ τ2 ≠ τ3 ⊕ τ4 →
                  d indet →
                  d ⟨ (τ1 ⊕ τ2) ⇒ (τ3 ⊕ τ4) ⟩ indet
+      ICastProd : ∀{d τ1 τ2 τ3 τ4} →
+                 τ1 ⊠ τ2 ≠ τ3 ⊠ τ4 →
+                 d indet →
+                 d ⟨ (τ1 ⊠ τ2) ⇒ (τ3 ⊠ τ4) ⟩ indet
       ICastGroundHole : ∀{τ d} →
                         τ ground →
                         d indet →
@@ -575,6 +697,10 @@ module core where
     inl    : htyp → ectx → ectx
     inr    : htyp → ectx → ectx
     case   : ectx → Nat → ihexp → Nat → ihexp → ectx
+    ⟨_,_⟩₁ : ectx → ihexp → ectx
+    ⟨_,_⟩₂ : ihexp → ectx → ectx
+    fst    : ectx → ectx
+    snd    : ectx → ectx
     ⦇⌜_⌟⦈⟨_⟩   : ectx → (Nat × env ) → ectx
     _⟨_⇒_⟩ : ectx → htyp → htyp → ectx
     _⟨_⇒⦇-⦈⇏_⟩ : ectx → htyp → htyp → ectx
@@ -612,6 +738,17 @@ module core where
     ECCase  : ∀{ε x d1 y d2} →
               ε evalctx →
               (case ε x d1 y d2) evalctx
+    ECPair1 : ∀{d ε} →
+              ε evalctx →
+              ⟨ ε , d ⟩₁ evalctx
+    ECPair2 : ∀{d ε} →
+              -- d final → -- red brackets
+              ε evalctx →
+              ⟨ d , ε ⟩₂ evalctx
+    ECFst   : ∀{ε} →
+              (fst ε) evalctx
+    ECSnd   : ∀{ε} →
+              (snd ε) evalctx
     ECNEHole : ∀{ε u σ} →
                ε evalctx →
                ⦇⌜ ε ⌟⦈⟨ u , σ ⟩ evalctx
@@ -648,6 +785,18 @@ module core where
     FHCase   : ∀{d d' x d1 y d2 ε} →
                d == ε ⟦ d' ⟧ →
                (case d x d1 y d2) == (case ε x d1 y d2) ⟦ d' ⟧
+    FHPair1  : ∀{d1 d1' d2 ε} →
+               d1 == ε ⟦ d1' ⟧ →
+               ⟨ d1 , d2 ⟩ == ⟨ ε , d2 ⟩₁ ⟦ d1' ⟧
+    FHPair2  : ∀{d1 d2 d2' ε} →
+               d2 == ε ⟦ d2' ⟧ →
+               ⟨ d1 , d2 ⟩ == ⟨ d1 , ε ⟩₂ ⟦ d2' ⟧
+    FHFst    : ∀{d d' ε} →
+               d == ε ⟦ d' ⟧ →
+               fst d == (fst ε) ⟦ d' ⟧
+    FHSnd    : ∀{d d' ε} →
+               d == ε ⟦ d' ⟧ →
+               snd d == (snd ε) ⟦ d' ⟧
     FHNEHole : ∀{d d' ε u σ} →
                d == ε ⟦ d' ⟧ →
                ⦇⌜ d ⌟⦈⟨ (u , σ ) ⟩ ==  ⦇⌜ ε ⌟⦈⟨ (u , σ ) ⟩ ⟦ d' ⟧
@@ -660,12 +809,15 @@ module core where
 
   -- matched ground types
   data _▸gnd_ : htyp → htyp → Set where
-    MGArr : ∀{τ1 τ2} →
-            (τ1 ==> τ2) ≠ (⦇-⦈ ==> ⦇-⦈) →
-            (τ1 ==> τ2) ▸gnd (⦇-⦈ ==> ⦇-⦈)
-    MGSum : ∀{τ1 τ2} →
-            (τ1 ⊕ τ2) ≠ (⦇-⦈ ⊕ ⦇-⦈) →
-            (τ1 ⊕ τ2) ▸gnd (⦇-⦈ ⊕ ⦇-⦈)
+    MGArr  : ∀{τ1 τ2} →
+             (τ1 ==> τ2) ≠ (⦇-⦈ ==> ⦇-⦈) →
+             (τ1 ==> τ2) ▸gnd (⦇-⦈ ==> ⦇-⦈)
+    MGSum  : ∀{τ1 τ2} →
+             (τ1 ⊕ τ2) ≠ (⦇-⦈ ⊕ ⦇-⦈) →
+             (τ1 ⊕ τ2) ▸gnd (⦇-⦈ ⊕ ⦇-⦈)
+    MGProd : ∀{τ1 τ2} →
+             (τ1 ⊠ τ2) ≠ (⦇-⦈ ⊠ ⦇-⦈) →
+             (τ1 ⊠ τ2) ▸gnd (⦇-⦈ ⊠ ⦇-⦈)
 
   -- instruction transition judgement
   data _→>_ : (d d' : ihexp) → Set where
@@ -690,6 +842,20 @@ module core where
                  -- d final → -- red brackets
                  (case (d ⟨ τ1 ⊕ τ2 ⇒ τ1' ⊕ τ2' ⟩) x d1 y d2) →>
                    (case d x ([ (X x) ⟨ τ1 ⇒ τ1' ⟩ / x ] d1) y ([ (X y) ⟨ τ2 ⇒ τ2' ⟩ / y ] d2))
+    ITFstPair  : ∀{d1 d2} →
+                 -- d1 final → -- red brackets
+                 -- d2 final → -- red brackets
+                 fst ⟨ d1 , d2 ⟩ →> d1
+    ITFstCast  : ∀{d τ1 τ2 τ1' τ2' } →
+                 -- d final → -- red brackets
+                 fst (d ⟨ τ1 ⊠ τ2 ⇒ τ1' ⊠ τ2' ⟩) →> ((fst d) ⟨ τ1 ⇒ τ1' ⟩)
+    ITSndPair  : ∀{d1 d2} →
+                 -- d1 final → -- red brackets
+                 -- d2 final → -- red brackets
+                 snd ⟨ d1 , d2 ⟩ →> d2
+    ITSndCast  : ∀{d τ1 τ2 τ1' τ2' } →
+                 -- d final → -- red brackets
+                 snd (d ⟨ τ1 ⊠ τ2 ⇒ τ1' ⊠ τ2' ⟩) →> ((snd d) ⟨ τ2 ⇒ τ2' ⟩)
     ITCastID   : ∀{d τ} →
                  -- d final → -- red brackets
                  (d ⟨ τ ⇒ τ ⟩) →> d
@@ -750,6 +916,9 @@ module core where
       FInr    : ∀{x d τ} → fresh x d → fresh x (inr τ d)
       FCase   : ∀{x d y d1 z d2} → fresh x d → x ≠ y → fresh x d1 → x ≠ z → fresh x d2 →
                 fresh x (case d y d1 z d2)
+      FPair : ∀{x d1 d2} → fresh x d1 → fresh x d2 → fresh x ⟨ d1 , d2 ⟩
+      FFst  : ∀{x d} → fresh x d → fresh x (fst d)
+      FSnd  : ∀{x d} → fresh x d → fresh x (snd d)
       FHole   : ∀{x u σ} → envfresh x σ → fresh x (⦇-⦈⟨ u , σ ⟩)
       FNEHole : ∀{x d u σ} → envfresh x σ → fresh x d → fresh x (⦇⌜ d ⌟⦈⟨ u , σ ⟩)
       FCast   : ∀{x d τ1 τ2} → fresh x d → fresh x (d ⟨ τ1 ⇒ τ2 ⟩)
@@ -768,9 +937,12 @@ module core where
     FRHInr    : ∀{x d} → freshh x d → freshh x (inr d)
     FRHCase   : ∀{x d y d1 z d2} → freshh x d → x ≠ y → freshh x d1 → x ≠ z → freshh x d2 →
                 freshh x (case d y d1 z d2)
+    FRHPair : ∀{x d1 d2} → freshh x d1 → freshh x d2 → freshh x ⟨ d1 , d2 ⟩
+    FRHFst  : ∀{x d} → freshh x d → freshh x (fst d)
+    FRHSnd  : ∀{x d} → freshh x d → freshh x (snd d)
     FRHEHole  : ∀{x u} → freshh x (⦇-⦈[ u ])
     FRHNEHole : ∀{x u e} → freshh x e → freshh x (⦇⌜ e ⌟⦈[ u ])
-
+  
   -- x is not used in a binding site in d
   mutual
     data unbound-in-σ : Nat → env → Set where
@@ -809,6 +981,16 @@ module core where
                  x ≠ z →
                  unbound-in x d2 →
                  unbound-in x (case d y d1 z d2)
+      UBPair   : ∀{x d1 d2} →
+                 unbound-in x d1 →
+                 unbound-in x d2 →
+                 unbound-in x ⟨ d1 , d2 ⟩
+      UBFst    : ∀{x d} →
+                 unbound-in x d →
+                 unbound-in x (fst d)
+      UBSnd    : ∀{x d} →
+                 unbound-in x d →
+                 unbound-in x (snd d)
       UBHole   : ∀{x u σ} →
                  unbound-in-σ x σ →
                  unbound-in x (⦇-⦈⟨ u , σ ⟩)
@@ -862,6 +1044,16 @@ module core where
                  unbound-in y d3 →
                  binders-disjoint d2 d3 →
                  binders-disjoint (case d x d1 y d2) d3
+      BDPair   : ∀{d1 d2 d3} →
+                 binders-disjoint d1 d3 →
+                 binders-disjoint d2 d3 →
+                 binders-disjoint ⟨ d1 , d2 ⟩ d3
+      BDFst    : ∀{d1 d2} →
+                 binders-disjoint d1 d2 →
+                 binders-disjoint (fst d1) d2
+      BDSnd    : ∀{d1 d2} →
+                 binders-disjoint d1 d2 →
+                 binders-disjoint (snd d1) d2
       BDHole   : ∀{u σ d2} →
                  binders-disjoint-σ σ d2 →
                  binders-disjoint (⦇-⦈⟨ u , σ ⟩) d2
@@ -927,6 +1119,17 @@ module core where
                  unbound-in y d1 →
                  unbound-in y d2 →
                  binders-unique (case d x d1 y d2)
+      BUPair   : ∀{d1 d2} →
+                 binders-unique d1 →
+                 binders-unique d2 →
+                 binders-disjoint d1 d2 →
+                 binders-unique ⟨ d1 , d2 ⟩
+      BUFst    : ∀{d} →
+                 binders-unique d →
+                 binders-unique (fst d)
+      BUSnd    : ∀{d} →
+                 binders-unique d →
+                 binders-unique (snd d)
       BUCast   : ∀{d τ1 τ2} →
                  binders-unique d →
                  binders-unique (d ⟨ τ1 ⇒ τ2 ⟩)

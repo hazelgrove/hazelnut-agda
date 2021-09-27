@@ -53,7 +53,7 @@ module contexts where
   (C1 ∪ C2) x with C1 x
   (C1 ∪ C2) x | Some x₁ = Some x₁
   (C1 ∪ C2) x | None = C2 x
-
+  
   -- the singleton context
   ■_ : {A : Set} → (Nat × A) → A ctx
   (■ (x , a)) y with natEQ x y

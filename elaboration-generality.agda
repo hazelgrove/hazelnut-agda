@@ -10,14 +10,17 @@ module elaboration-generality where
                             Γ ⊢ e => τ
     elaboration-generality-synth ESNum = SNum
     elaboration-generality-synth (ESPlus apt dis x₁ x₂) = SPlus dis (elaboration-generality-ana x₁) (elaboration-generality-ana x₂)
+    elaboration-generality-synth (ESAsc x) = SAsc (elaboration-generality-ana x)
     elaboration-generality-synth (ESVar x₁) = SVar x₁
     elaboration-generality-synth (ESLam apt ex) with elaboration-generality-synth ex
     ... | ih = SLam apt ih
     elaboration-generality-synth (ESAp dis _ a x₁ x₂ x₃) = SAp dis a x₁ (elaboration-generality-ana x₃)
+    elaboration-generality-synth (ESPair x x₁ x₂ x₃) = SPair x (elaboration-generality-synth x₂)
+                                                         (elaboration-generality-synth x₃)
     elaboration-generality-synth ESEHole = SEHole
     elaboration-generality-synth (ESNEHole dis ex) = SNEHole (elab-disjoint-new-synth ex dis) (elaboration-generality-synth ex)
-    elaboration-generality-synth (ESAsc x) = SAsc (elaboration-generality-ana x)
 
+    
     elaboration-generality-ana : {Γ : tctx} {e : hexp} {τ τ' : htyp} {d : ihexp} {Δ : hctx} →
                           Γ ⊢ e ⇐ τ ~> d :: τ' ⊣ Δ →
                           Γ ⊢ e <= τ

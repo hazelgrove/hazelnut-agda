@@ -27,6 +27,9 @@ module holes-disjoint-checks where
   ds-lem-num {inl e} = HDInl ds-lem-num
   ds-lem-num {inr e} = HDInr ds-lem-num
   ds-lem-num {case e x e₁ x₁ e₂} = HDCase ds-lem-num ds-lem-num ds-lem-num
+  ds-lem-num {⟨ e , e₁ ⟩} = HDPair ds-lem-num ds-lem-num
+  ds-lem-num {fst e} = HDFst ds-lem-num
+  ds-lem-num {snd e} = HDSnd ds-lem-num
   ds-lem-num {⦇-⦈[ x ]} = HDHole HNNum
   ds-lem-num {⦇⌜ e ⌟⦈[ x ]} = HDNEHole HNNum ds-lem-num
   
@@ -41,9 +44,12 @@ module holes-disjoint-checks where
   ds-lem-plus (HDInl hd) (HDInl ν) = HDInl (ds-lem-plus hd ν)
   ds-lem-plus (HDInr hd) (HDInr ν) = HDInr (ds-lem-plus hd ν)
   ds-lem-plus (HDCase hd hd₁ hd₂) (HDCase ν ν₁ ν₂) = HDCase (ds-lem-plus hd ν) (ds-lem-plus hd₁ ν₁) (ds-lem-plus hd₂ ν₂)
+  ds-lem-plus (HDPair hd hd₁) (HDPair ν ν₁) = HDPair (ds-lem-plus hd ν) (ds-lem-plus hd₁ ν₁)
+  ds-lem-plus (HDFst hd) (HDFst ν) = HDFst (ds-lem-plus hd ν)
+  ds-lem-plus (HDSnd hd) (HDSnd ν) = HDSnd (ds-lem-plus hd ν)
   ds-lem-plus (HDHole x) (HDHole x₁) = HDHole (HNPlus x x₁)
   ds-lem-plus (HDNEHole x hd) (HDNEHole x₁ ν) = HDNEHole (HNPlus x x₁) (ds-lem-plus hd ν)
-
+  
   ds-lem-var : ∀{e x} → holes-disjoint e (X x)
   ds-lem-var {N x} = HDNum
   ds-lem-var {e ·+ e₁} = HDPlus ds-lem-var ds-lem-var
@@ -55,6 +61,9 @@ module holes-disjoint-checks where
   ds-lem-var {inl e} = HDInl ds-lem-var
   ds-lem-var {inr e} = HDInr ds-lem-var
   ds-lem-var {case e x e₁ x₁ e₂} = HDCase ds-lem-var ds-lem-var ds-lem-var
+  ds-lem-var {⟨ e , e₁ ⟩} = HDPair ds-lem-var ds-lem-var
+  ds-lem-var {fst e} = HDFst ds-lem-var
+  ds-lem-var {snd e} = HDSnd ds-lem-var
   ds-lem-var {⦇-⦈[ x ]} = HDHole HNVar
   ds-lem-var {⦇⌜ e ⌟⦈[ x ]} = HDNEHole HNVar ds-lem-var
   
@@ -69,6 +78,9 @@ module holes-disjoint-checks where
   ds-lem-asc (HDInl hd) = HDInl (ds-lem-asc hd)
   ds-lem-asc (HDInr hd) = HDInr (ds-lem-asc hd)
   ds-lem-asc (HDCase hd hd₁ hd₂) = HDCase (ds-lem-asc hd) (ds-lem-asc hd₁) (ds-lem-asc hd₂)
+  ds-lem-asc (HDPair hd hd₁) = HDPair (ds-lem-asc hd) (ds-lem-asc hd₁)
+  ds-lem-asc (HDFst hd) = HDFst (ds-lem-asc hd)
+  ds-lem-asc (HDSnd hd) = HDSnd (ds-lem-asc hd)
   ds-lem-asc (HDHole x) = HDHole (HNAsc x)
   ds-lem-asc (HDNEHole x hd) = HDNEHole (HNAsc x) (ds-lem-asc hd)
   
@@ -83,9 +95,12 @@ module holes-disjoint-checks where
   ds-lem-lam1 (HDInl hd) = HDInl (ds-lem-lam1 hd)
   ds-lem-lam1 (HDInr hd) = HDInr (ds-lem-lam1 hd)
   ds-lem-lam1 (HDCase hd hd₁ hd₂) = HDCase (ds-lem-lam1 hd) (ds-lem-lam1 hd₁) (ds-lem-lam1 hd₂)
+  ds-lem-lam1 (HDPair hd hd₁) = HDPair (ds-lem-lam1 hd) (ds-lem-lam1 hd₁)
+  ds-lem-lam1 (HDFst hd) = HDFst (ds-lem-lam1 hd)
+  ds-lem-lam1 (HDSnd hd) = HDSnd (ds-lem-lam1 hd)
   ds-lem-lam1 (HDHole x₁) = HDHole (HNLam1 x₁)
   ds-lem-lam1 (HDNEHole x₁ hd) = HDNEHole (HNLam1 x₁) (ds-lem-lam1 hd) 
-
+  
   ds-lem-lam2 : ∀{e1 e2 x τ} → holes-disjoint e2 e1 → holes-disjoint e2 (·λ x [ τ ] e1)
   ds-lem-lam2 HDNum = HDNum
   ds-lem-lam2 (HDPlus hd hd₁) = HDPlus (ds-lem-lam2 hd) (ds-lem-lam2 hd₁)
@@ -97,6 +112,9 @@ module holes-disjoint-checks where
   ds-lem-lam2 (HDInl hd) = HDInl (ds-lem-lam2 hd)
   ds-lem-lam2 (HDInr hd) = HDInr (ds-lem-lam2 hd)
   ds-lem-lam2 (HDCase hd hd₁ hd₂) = HDCase (ds-lem-lam2 hd) (ds-lem-lam2 hd₁) (ds-lem-lam2 hd₂)
+  ds-lem-lam2 (HDPair hd hd₁) = HDPair (ds-lem-lam2 hd) (ds-lem-lam2 hd₁)
+  ds-lem-lam2 (HDFst hd) = HDFst (ds-lem-lam2 hd)
+  ds-lem-lam2 (HDSnd hd) = HDSnd (ds-lem-lam2 hd)
   ds-lem-lam2 (HDHole x₁) = HDHole (HNLam2 x₁)
   ds-lem-lam2 (HDNEHole x₁ hd) = HDNEHole (HNLam2 x₁) (ds-lem-lam2 hd)
   
@@ -111,9 +129,12 @@ module holes-disjoint-checks where
   ds-lem-ap (HDInl hd) (HDInl ν) = HDInl (ds-lem-ap hd ν)
   ds-lem-ap (HDInr hd) (HDInr ν) = HDInr (ds-lem-ap hd ν)
   ds-lem-ap (HDCase hd hd₁ hd₂) (HDCase ν ν₁ ν₂) = HDCase (ds-lem-ap hd ν) (ds-lem-ap hd₁ ν₁) (ds-lem-ap hd₂ ν₂)
+  ds-lem-ap (HDPair hd hd₁) (HDPair ν ν₁) = HDPair (ds-lem-ap hd ν) (ds-lem-ap hd₁ ν₁)
+  ds-lem-ap (HDFst hd) (HDFst ν) = HDFst (ds-lem-ap hd ν)
+  ds-lem-ap (HDSnd hd) (HDSnd ν) = HDSnd (ds-lem-ap hd ν)
   ds-lem-ap (HDHole x) (HDHole x₁) = HDHole (HNAp x x₁)
-  ds-lem-ap (HDNEHole x hd1) (HDNEHole x₁ hd2) = HDNEHole (HNAp x x₁) (ds-lem-ap hd1 hd2)
-
+  ds-lem-ap (HDNEHole x hd1) (HDNEHole x₁ hd2) = HDNEHole (HNAp x x₁) (ds-lem-ap hd1 hd2)  
+  
   ds-lem-inl : ∀{e1 e2} → holes-disjoint e2 e1 → holes-disjoint e2 (inl e1)
   ds-lem-inl HDNum = HDNum
   ds-lem-inl (HDPlus hd hd₁) = HDPlus (ds-lem-inl hd) (ds-lem-inl hd₁)
@@ -125,9 +146,12 @@ module holes-disjoint-checks where
   ds-lem-inl (HDInl hd) = HDInl (ds-lem-inl hd)
   ds-lem-inl (HDInr hd) = HDInr (ds-lem-inl hd)
   ds-lem-inl (HDCase hd hd₁ hd₂) = HDCase (ds-lem-inl hd) (ds-lem-inl hd₁) (ds-lem-inl hd₂)
+  ds-lem-inl (HDPair hd hd₁) = HDPair (ds-lem-inl hd) (ds-lem-inl hd₁)
+  ds-lem-inl (HDFst hd) = HDFst (ds-lem-inl hd)
+  ds-lem-inl (HDSnd hd) = HDSnd (ds-lem-inl hd)
   ds-lem-inl (HDHole x) = HDHole (HNInl x)
   ds-lem-inl (HDNEHole x hd) = HDNEHole (HNInl x) (ds-lem-inl hd)
-
+  
   ds-lem-inr : ∀{e1 e2} → holes-disjoint e2 e1 → holes-disjoint e2 (inr e1)
   ds-lem-inr HDNum = HDNum
   ds-lem-inr (HDPlus hd hd₁) = HDPlus (ds-lem-inr hd) (ds-lem-inr hd₁)
@@ -139,9 +163,12 @@ module holes-disjoint-checks where
   ds-lem-inr (HDInl hd) = HDInl (ds-lem-inr hd)
   ds-lem-inr (HDInr hd) = HDInr (ds-lem-inr hd)
   ds-lem-inr (HDCase hd hd₁ hd₂) = HDCase (ds-lem-inr hd) (ds-lem-inr hd₁) (ds-lem-inr hd₂)
+  ds-lem-inr (HDPair hd hd₁) = HDPair (ds-lem-inr hd) (ds-lem-inr hd₁)
+  ds-lem-inr (HDFst hd) = HDFst (ds-lem-inr hd)
+  ds-lem-inr (HDSnd hd) = HDSnd (ds-lem-inr hd)
   ds-lem-inr (HDHole x) = HDHole (HNInr x)
   ds-lem-inr (HDNEHole x hd) = HDNEHole (HNInr x) (ds-lem-inr hd)
-
+  
   ds-lem-case : ∀{e3 e x e1 y e2} → holes-disjoint e3 e → holes-disjoint e3 e1 → holes-disjoint e3 e2 → holes-disjoint e3 (case e x e1 y e2)
   ds-lem-case HDNum HDNum HDNum = HDNum
   ds-lem-case (HDPlus hd hd₁) (HDPlus ν ν₂) (HDPlus ν₁ ν₃) = HDPlus (ds-lem-case hd ν ν₁) (ds-lem-case hd₁ ν₂ ν₃)
@@ -152,11 +179,64 @@ module holes-disjoint-checks where
   ds-lem-case (HDAp hd hd₁) (HDAp ν ν₁) (HDAp ν₂ ν₃) = HDAp (ds-lem-case hd ν ν₂) (ds-lem-case hd₁ ν₁ ν₃)
   ds-lem-case (HDInl hd) (HDInl ν) (HDInl ν₁) = HDInl (ds-lem-case hd ν ν₁)
   ds-lem-case (HDInr hd) (HDInr ν) (HDInr ν₁) = HDInr (ds-lem-case hd ν ν₁)
-  ds-lem-case (HDCase hd hd₁ hd₂) (HDCase ν ν₁ ν₂) (HDCase ν₃ ν₄ ν₅) = HDCase (ds-lem-case hd ν ν₃) (ds-lem-case hd₁ ν₁ ν₄)
-                                                                         (ds-lem-case hd₂ ν₂ ν₅)
+  ds-lem-case (HDCase hd hd₁ hd₂) (HDCase ν ν₁ ν₂) (HDCase ν₃ ν₄ ν₅) = HDCase (ds-lem-case hd ν ν₃) (ds-lem-case hd₁ ν₁ ν₄) (ds-lem-case hd₂ ν₂ ν₅)
+  ds-lem-case (HDPair hd hd₁) (HDPair ν ν₁) (HDPair ν₂ ν₃) = HDPair (ds-lem-case hd ν ν₂) (ds-lem-case hd₁ ν₁ ν₃)
+  ds-lem-case (HDFst hd) (HDFst ν) (HDFst ν₁) = HDFst (ds-lem-case hd ν ν₁)
+  ds-lem-case (HDSnd hd) (HDSnd ν) (HDSnd ν₁) = HDSnd (ds-lem-case hd ν ν₁)
   ds-lem-case (HDHole x) (HDHole x₁) (HDHole x₂) = HDHole (HNCase x x₁ x₂)
   ds-lem-case (HDNEHole x hd) (HDNEHole x₁ ν) (HDNEHole x₂ ν₁) = HDNEHole (HNCase x x₁ x₂) (ds-lem-case hd ν ν₁)
+  
+  ds-lem-pair : ∀{e1 e2 e3} → holes-disjoint e3 e1 → holes-disjoint e3 e2 → holes-disjoint e3 ⟨ e1 , e2 ⟩
+  ds-lem-pair HDNum HDNum = HDNum
+  ds-lem-pair (HDPlus hd hd₁) (HDPlus ν ν₁) = HDPlus (ds-lem-pair hd ν) (ds-lem-pair hd₁ ν₁)
+  ds-lem-pair (HDAsc hd) (HDAsc ν) = HDAsc (ds-lem-pair hd ν)
+  ds-lem-pair HDVar HDVar = HDVar
+  ds-lem-pair (HDLam1 hd) (HDLam1 ν) = HDLam1 (ds-lem-pair hd ν)
+  ds-lem-pair (HDLam2 hd) (HDLam2 ν) = HDLam2 (ds-lem-pair hd ν)
+  ds-lem-pair (HDAp hd hd₁) (HDAp ν ν₁) = HDAp (ds-lem-pair hd ν) (ds-lem-pair hd₁ ν₁)
+  ds-lem-pair (HDInl hd) (HDInl ν) = HDInl (ds-lem-pair hd ν)
+  ds-lem-pair (HDInr hd) (HDInr ν) = HDInr (ds-lem-pair hd ν)
+  ds-lem-pair (HDCase hd hd₁ hd₂) (HDCase ν ν₁ ν₂) = HDCase (ds-lem-pair hd ν) (ds-lem-pair hd₁ ν₁) (ds-lem-pair hd₂ ν₂)
+  ds-lem-pair (HDPair hd hd₁) (HDPair ν ν₁) = HDPair (ds-lem-pair hd ν) (ds-lem-pair hd₁ ν₁)
+  ds-lem-pair (HDFst hd) (HDFst ν) = HDFst (ds-lem-pair hd ν)
+  ds-lem-pair (HDSnd hd) (HDSnd ν) = HDSnd (ds-lem-pair hd ν)
+  ds-lem-pair (HDHole x) (HDHole x₁) = HDHole (HNPair x x₁)
+  ds-lem-pair (HDNEHole x hd) (HDNEHole x₁ ν) = HDNEHole (HNPair x x₁) (ds-lem-pair hd ν)
 
+  ds-lem-fst : ∀{e1 e2} → holes-disjoint e2 e1 → holes-disjoint e2 (fst e1)
+  ds-lem-fst HDNum = HDNum
+  ds-lem-fst (HDPlus hd hd₁) = HDPlus (ds-lem-fst hd) (ds-lem-fst hd₁)
+  ds-lem-fst (HDAsc hd) = HDAsc (ds-lem-fst hd)
+  ds-lem-fst HDVar = HDVar
+  ds-lem-fst (HDLam1 hd) = HDLam1 (ds-lem-fst hd)
+  ds-lem-fst (HDLam2 hd) = HDLam2 (ds-lem-fst hd)
+  ds-lem-fst (HDAp hd hd₁) = HDAp (ds-lem-fst hd) (ds-lem-fst hd₁)
+  ds-lem-fst (HDInl hd) = HDInl (ds-lem-fst hd)
+  ds-lem-fst (HDInr hd) = HDInr (ds-lem-fst hd)
+  ds-lem-fst (HDCase hd hd₁ hd₂) = HDCase (ds-lem-fst hd) (ds-lem-fst hd₁) (ds-lem-fst hd₂)
+  ds-lem-fst (HDPair hd hd₁) = HDPair (ds-lem-fst hd) (ds-lem-fst hd₁)
+  ds-lem-fst (HDFst hd) = HDFst (ds-lem-fst hd)
+  ds-lem-fst (HDSnd hd) = HDSnd (ds-lem-fst hd)
+  ds-lem-fst (HDHole x) = HDHole (HNFst x)
+  ds-lem-fst (HDNEHole x hd) = HDNEHole (HNFst x) (ds-lem-fst hd)
+
+  ds-lem-snd : ∀{e1 e2} → holes-disjoint e2 e1 → holes-disjoint e2 (snd e1)
+  ds-lem-snd HDNum = HDNum
+  ds-lem-snd (HDPlus hd hd₁) = HDPlus (ds-lem-snd hd) (ds-lem-snd hd₁)
+  ds-lem-snd (HDAsc hd) = HDAsc (ds-lem-snd hd)
+  ds-lem-snd HDVar = HDVar
+  ds-lem-snd (HDLam1 hd) = HDLam1 (ds-lem-snd hd)
+  ds-lem-snd (HDLam2 hd) = HDLam2 (ds-lem-snd hd)
+  ds-lem-snd (HDAp hd hd₁) = HDAp (ds-lem-snd hd) (ds-lem-snd hd₁)
+  ds-lem-snd (HDInl hd) = HDInl (ds-lem-snd hd)
+  ds-lem-snd (HDInr hd) = HDInr (ds-lem-snd hd)
+  ds-lem-snd (HDCase hd hd₁ hd₂) = HDCase (ds-lem-snd hd) (ds-lem-snd hd₁) (ds-lem-snd hd₂)
+  ds-lem-snd (HDPair hd hd₁) = HDPair (ds-lem-snd hd) (ds-lem-snd hd₁)
+  ds-lem-snd (HDFst hd) = HDFst (ds-lem-snd hd)
+  ds-lem-snd (HDSnd hd) = HDSnd (ds-lem-snd hd)
+  ds-lem-snd (HDHole x) = HDHole (HNSnd x)
+  ds-lem-snd (HDNEHole x hd) = HDNEHole (HNSnd x) (ds-lem-snd hd)
+  
   ds-lem-hole : ∀{e u} → hole-name-new e u → holes-disjoint e ⦇-⦈[ u ]
   ds-lem-hole HNNum = HDNum
   ds-lem-hole (HNPlus hnn hnn₁) = HDPlus (ds-lem-hole hnn) (ds-lem-hole hnn₁)
@@ -168,6 +248,9 @@ module holes-disjoint-checks where
   ds-lem-hole (HNInl hnn) = HDInl (ds-lem-hole hnn)
   ds-lem-hole (HNInr hnn) = HDInr (ds-lem-hole hnn)
   ds-lem-hole (HNCase hnn hnn₁ hnn₂) = HDCase (ds-lem-hole hnn) (ds-lem-hole hnn₁) (ds-lem-hole hnn₂)
+  ds-lem-hole (HNPair hn hn₁) = HDPair (ds-lem-hole hn) (ds-lem-hole hn₁)
+  ds-lem-hole (HNFst hn) = HDFst (ds-lem-hole hn)
+  ds-lem-hole (HNSnd hn) = HDSnd (ds-lem-hole hn)
   ds-lem-hole (HNHole x) = HDHole (HNHole (flip x))
   ds-lem-hole (HNNEHole x hnn) = HDNEHole (HNHole (flip x)) (ds-lem-hole hnn)
   
@@ -181,8 +264,10 @@ module holes-disjoint-checks where
   ds-lem-nehole (HDAp hd hd₁) (HNAp ν ν₁) = HDAp (ds-lem-nehole hd ν) (ds-lem-nehole hd₁ ν₁)
   ds-lem-nehole (HDInl hd) (HNInl ν) = HDInl (ds-lem-nehole hd ν)
   ds-lem-nehole (HDInr hd) (HNInr ν) = HDInr (ds-lem-nehole hd ν)
-  ds-lem-nehole (HDCase hd hd₁ hd₂) (HNCase ν ν₁ ν₂) = HDCase (ds-lem-nehole hd ν) (ds-lem-nehole hd₁ ν₁)
-                                                         (ds-lem-nehole hd₂ ν₂)
+  ds-lem-nehole (HDCase hd hd₁ hd₂) (HNCase ν ν₁ ν₂) = HDCase (ds-lem-nehole hd ν) (ds-lem-nehole hd₁ ν₁) (ds-lem-nehole hd₂ ν₂)
+  ds-lem-nehole (HDPair hd hd₁) (HNPair ν ν₁) = HDPair (ds-lem-nehole hd ν) (ds-lem-nehole hd₁ ν₁)
+  ds-lem-nehole (HDFst hd) (HNFst ν) = HDFst (ds-lem-nehole hd ν)
+  ds-lem-nehole (HDSnd hd) (HNSnd ν) = HDSnd (ds-lem-nehole hd ν)
   ds-lem-nehole (HDHole x) (HNHole x₁) = HDHole (HNNEHole (flip x₁) x)
   ds-lem-nehole (HDNEHole x hd) (HNNEHole x₁ ν) = HDNEHole (HNNEHole (flip x₁) x) (ds-lem-nehole hd ν)
   
@@ -198,6 +283,9 @@ module holes-disjoint-checks where
   disjoint-sym (HDInl hd) = ds-lem-inl (disjoint-sym hd)
   disjoint-sym (HDInr hd) = ds-lem-inr (disjoint-sym hd)
   disjoint-sym (HDCase hd hd₁ hd₂) = ds-lem-case (disjoint-sym hd) (disjoint-sym hd₁) (disjoint-sym hd₂)
+  disjoint-sym (HDPair hd hd₁) = ds-lem-pair (disjoint-sym hd) (disjoint-sym hd₁)
+  disjoint-sym (HDFst hd) = ds-lem-fst (disjoint-sym hd)
+  disjoint-sym (HDSnd hd) = ds-lem-snd (disjoint-sym hd)
   disjoint-sym (HDHole x) = ds-lem-hole x
   disjoint-sym (HDNEHole x hd) = ds-lem-nehole (disjoint-sym hd) x
   

@@ -25,3 +25,6 @@ module synth-unicity where
   synthunicity (SPlus _ _ _) (SPlus _ _ _) = refl
   synthunicity (SLam _ D1) (SLam _ D2) with synthunicity D1 D2
   synthunicity (SLam x₁ D1) (SLam x₂ D2) | refl = refl
+  synthunicity (SPair x D1 D2) (SPair x₁ D3 D4)
+    with synthunicity D1 D3 | synthunicity D2 D4
+  ... | refl | refl = refl
