@@ -1,6 +1,6 @@
 open import Nat
 open import Prelude
-open import core
+open import dynamics-core
 open import contexts
 open import lemmas-consistency
 open import lemmas-disjointness
@@ -13,7 +13,7 @@ module typed-elaboration where
                             Γ ⊢ e ⇒ τ ~> d ⊣ Δ →
                             Δ , Γ ⊢ d :: τ
     typed-elaboration-synth ESNum = TANum
-    typed-elaboration-synth (ESPlus apt dis x₁ x₂)
+    typed-elaboration-synth (ESPlus dis apt x₁ x₂)
       with typed-elaboration-ana x₁ | typed-elaboration-ana x₂
     ... | con1 , ih1 | con2 , ih2 = TAPlus (TACast (weaken-ta-Δ1 apt ih1) con1) (TACast (weaken-ta-Δ2 apt ih2) con2)
     typed-elaboration-synth (ESVar x₁) = TAVar x₁
@@ -33,6 +33,13 @@ module typed-elaboration where
     typed-elaboration-synth (ESPair x x₁ x₂ x₃)
       with typed-elaboration-synth x₂ | typed-elaboration-synth x₃
     ... | ih1 | ih2 = TAPair (weaken-ta-Δ1 x₁ ih1) (weaken-ta-Δ2 x₁ ih2)
+    typed-elaboration-synth (ESFst x x₁ x₂)
+      with typed-elaboration-ana x₂
+    ... | con , ih = TAFst (TACast ih con)
+    typed-elaboration-synth (ESSnd x x₁ x₂)
+      with typed-elaboration-ana x₂
+    ... | con , ih = TASnd (TACast ih con)
+    
     typed-elaboration-ana : {Γ : tctx} {e : hexp} {τ τ' : htyp} {d : ihexp} {Δ : hctx} →
                             Γ ⊢ e ⇐ τ ~> d :: τ' ⊣ Δ →
                             (τ' ~ τ) × (Δ , Γ ⊢ d :: τ')

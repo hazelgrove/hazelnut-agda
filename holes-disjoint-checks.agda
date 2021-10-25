@@ -1,9 +1,8 @@
 open import Prelude
 open import Nat
-open import core
+open import dynamics-core
 open import contexts
 open import disjointness
-
 
 -- this module contains lemmas and properties about the holes-disjoint
 -- judgement that double check that it acts as we would expect
@@ -22,7 +21,7 @@ module holes-disjoint-checks where
   ds-lem-num {e ·: x} = HDAsc ds-lem-num
   ds-lem-num {X x} = HDVar
   ds-lem-num {·λ x e} = HDLam1 ds-lem-num
-  ds-lem-num {·λ x [ x₁ ] e} = HDLam2 ds-lem-num
+  ds-lem-num {·λ x ·[ x₁ ] e} = HDLam2 ds-lem-num
   ds-lem-num {e ∘ e₁} = HDAp ds-lem-num ds-lem-num
   ds-lem-num {inl e} = HDInl ds-lem-num
   ds-lem-num {inr e} = HDInr ds-lem-num
@@ -56,7 +55,7 @@ module holes-disjoint-checks where
   ds-lem-var {e ·: x} = HDAsc ds-lem-var
   ds-lem-var {X x} = HDVar
   ds-lem-var {·λ x e} = HDLam1 ds-lem-var
-  ds-lem-var {·λ x [ x₁ ] e} = HDLam2 ds-lem-var
+  ds-lem-var {·λ x ·[ x₁ ] e} = HDLam2 ds-lem-var
   ds-lem-var {e ∘ e₁} = HDAp ds-lem-var ds-lem-var
   ds-lem-var {inl e} = HDInl ds-lem-var
   ds-lem-var {inr e} = HDInr ds-lem-var
@@ -101,7 +100,7 @@ module holes-disjoint-checks where
   ds-lem-lam1 (HDHole x₁) = HDHole (HNLam1 x₁)
   ds-lem-lam1 (HDNEHole x₁ hd) = HDNEHole (HNLam1 x₁) (ds-lem-lam1 hd) 
   
-  ds-lem-lam2 : ∀{e1 e2 x τ} → holes-disjoint e2 e1 → holes-disjoint e2 (·λ x [ τ ] e1)
+  ds-lem-lam2 : ∀{e1 e2 x τ} → holes-disjoint e2 e1 → holes-disjoint e2 (·λ x ·[ τ ] e1)
   ds-lem-lam2 HDNum = HDNum
   ds-lem-lam2 (HDPlus hd hd₁) = HDPlus (ds-lem-lam2 hd) (ds-lem-lam2 hd₁)
   ds-lem-lam2 (HDAsc hd) = HDAsc (ds-lem-lam2 hd)
@@ -254,7 +253,10 @@ module holes-disjoint-checks where
   ds-lem-hole (HNHole x) = HDHole (HNHole (flip x))
   ds-lem-hole (HNNEHole x hnn) = HDNEHole (HNHole (flip x)) (ds-lem-hole hnn)
   
-  ds-lem-nehole : ∀{e e1 u} → holes-disjoint e e1 → hole-name-new e u → holes-disjoint e ⦇⌜ e1 ⌟⦈[ u ]
+  ds-lem-nehole : ∀{e e1 u} →
+                  holes-disjoint e e1 →
+                  hole-name-new e u →
+                  holes-disjoint e ⦇⌜ e1 ⌟⦈[ u ]
   ds-lem-nehole HDNum ν = HDNum
   ds-lem-nehole (HDPlus hd hd₁) (HNPlus ν ν₁) = HDPlus (ds-lem-nehole hd ν) (ds-lem-nehole hd₁ ν₁)
   ds-lem-nehole (HDAsc hd) (HNAsc ν) = HDAsc (ds-lem-nehole hd ν)
@@ -295,3 +297,4 @@ module holes-disjoint-checks where
   -- it's also not reflexive, because ⦇-⦈[ u ] isn't hole-disjoint with
   -- itself since refl : u == u; it's also not anti-reflexive, because the
   -- expression c *is* hole-disjoint with itself (albeit vacuously)
+  

@@ -1,5 +1,5 @@
 open import Prelude
-open import core
+open import dynamics-core
 
 module ground-decidable where
   ground-decidable : (τ : htyp) → (τ ground) + ((τ ground) → ⊥)

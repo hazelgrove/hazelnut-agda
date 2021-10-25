@@ -1,5 +1,5 @@
 open import Prelude
-open import core
+open import dynamics-core
 
 module lemmas-ground where
   -- not ground types aren't just a type constructor filled with holes

@@ -1,5 +1,5 @@
 open import Prelude
-open import core
+open import dynamics-core
 
 module lemmas-consistency where
   -- type consistency is symmetric

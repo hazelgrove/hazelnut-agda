@@ -1,4 +1,4 @@
-open import core
+open import dynamics-core
 
 module focus-formation where
   -- every ε is an evaluation context -- trivially, here, since we don't

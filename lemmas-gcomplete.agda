@@ -1,6 +1,6 @@
 open import Prelude
 open import Nat
-open import core
+open import dynamics-core
 open import contexts
 
 module lemmas-gcomplete where

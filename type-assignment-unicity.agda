@@ -1,6 +1,6 @@
 open import Nat
 open import Prelude
-open import core
+open import dynamics-core
 open import contexts
 
 module type-assignment-unicity where

@@ -1,6 +1,6 @@
 open import Nat
 open import Prelude
-open import core
+open import dynamics-core
 open import contexts
 open import lemmas-disjointness
 open import exchange
@@ -57,16 +57,18 @@ module weakening where
                    Γ ⊢ e => τ →
                    (Γ ,, (x , τ')) ⊢ e => τ
     weaken-synth FRHNum SNum = SNum
-    weaken-synth (FRHPlus frsh frsh₁) (SPlus dsjt x x₁) = SPlus dsjt (weaken-ana frsh x) (weaken-ana frsh₁ x₁)
+    weaken-synth (FRHPlus frsh frsh₁) (SPlus x x₁) = SPlus (weaken-ana frsh x) (weaken-ana frsh₁ x₁)
     weaken-synth (FRHAsc frsh) (SAsc x₁) = SAsc (weaken-ana frsh x₁)
     weaken-synth {Γ = Γ} (FRHVar {x = x} x₁) (SVar {x = y} x₂) = SVar (x∈∪r (■ (x , _)) Γ y _ x₂ (apart-singleton (flip x₁)))
     weaken-synth {Γ = Γ} (FRHLam2 x₁ frsh) (SLam x₂ wt) =
                     SLam (apart-extend1 Γ (flip x₁) x₂)
                          (exchange-synth {Γ = Γ} (flip x₁) ((weaken-synth frsh wt)))
     weaken-synth FRHEHole SEHole = SEHole
-    weaken-synth (FRHNEHole frsh) (SNEHole x₁ wt) = SNEHole x₁ (weaken-synth frsh wt)
-    weaken-synth (FRHAp frsh frsh₁) (SAp x₁ wt x₂ x₃) = SAp x₁ (weaken-synth frsh wt) x₂ (weaken-ana frsh₁ x₃)
-    weaken-synth (FRHPair frsh frsh₁) (SPair x wt wt₁) = SPair x (weaken-synth frsh wt) (weaken-synth frsh₁ wt₁)
+    weaken-synth (FRHNEHole frsh) (SNEHole wt) = SNEHole (weaken-synth frsh wt)
+    weaken-synth (FRHAp frsh frsh₁) (SAp wt x₂ x₃) = SAp (weaken-synth frsh wt) x₂ (weaken-ana frsh₁ x₃)
+    weaken-synth (FRHPair frsh frsh₁) (SPair wt wt₁) = SPair (weaken-synth frsh wt) (weaken-synth frsh₁ wt₁)
+    weaken-synth (FRHFst frsh) (SFst wt x) = SFst (weaken-synth frsh wt) x
+    weaken-synth (FRHSnd frsh) (SSnd wt x) = SSnd (weaken-synth frsh wt) x
 
     weaken-ana : ∀{x Γ e τ τ'} →
                  freshh x e →
@@ -80,9 +82,8 @@ module weakening where
     weaken-ana (FRHInl frsh) (AInl x x₁) = AInl x (weaken-ana frsh x₁)
     weaken-ana (FRHInr frsh) (AInr x x₁) = AInr x (weaken-ana frsh x₁)
     weaken-ana {Γ = Γ} (FRHCase frshd newx≠y frshd₁ newx≠z frshd₂)
-                       (ACase {Γ = .Γ} edise1 edise2 e1dise2 y#Γ z#Γ msum syn ana₁ ana₂) =
-               ACase edise1 edise2 e1dise2
-                     (apart-extend1 Γ (flip newx≠y) y#Γ)
+                       (ACase {Γ = .Γ} y#Γ z#Γ msum syn ana₁ ana₂) =
+               ACase (apart-extend1 Γ (flip newx≠y) y#Γ)
                      (apart-extend1 Γ (flip newx≠z) z#Γ)
                      msum
                      (weaken-synth {Γ = Γ} frshd syn)

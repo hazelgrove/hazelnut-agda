@@ -1,6 +1,6 @@
 open import Nat
 open import Prelude
-open import core
+open import dynamics-core
 
 module lemmas-progress-checks where
   -- boxed values don't have an instruction transition

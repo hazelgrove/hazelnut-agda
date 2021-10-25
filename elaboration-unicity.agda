@@ -1,9 +1,9 @@
 open import Nat
 open import Prelude
-open import core
 open import contexts
-open import synth-unicity
+open import dynamics-core
 open import lemmas-matching
+open import synth-unicity
 
 module elaboration-unicity where
   mutual
@@ -35,7 +35,17 @@ module elaboration-unicity where
     elaboration-unicity-synth (ESPair x x₁ wt1 wt2) (ESPair x₂ x₃ wt3 wt4)
       with elaboration-unicity-synth wt1 wt3 | elaboration-unicity-synth wt2 wt4
     ... | refl , refl , refl | refl , refl , refl = refl , refl , refl
-
+    elaboration-unicity-synth (ESFst wt1 x₁ d1) (ESFst wt2 x₄ d2)
+      with synthunicity wt1 wt2
+    ... | refl with ▸prod-unicity x₁ x₄
+    ... | refl with elaboration-unicity-ana d1 d2
+    ... | refl , refl , refl = refl , refl , refl
+    elaboration-unicity-synth (ESSnd wt1 x₁ d1) (ESSnd wt2 x₄ d2)
+      with synthunicity wt1 wt2
+    ... | refl with ▸prod-unicity x₁ x₄
+    ... | refl with elaboration-unicity-ana d1 d2
+    ... | refl , refl , refl = refl , refl , refl
+    
     elaboration-unicity-ana : {Γ : tctx} {e : hexp} {τ τ1 τ2 : htyp} {d1 d2 : ihexp} {Δ1 Δ2 : hctx} →
                           Γ ⊢ e ⇐ τ ~> d1 :: τ1 ⊣ Δ1  →
                           Γ ⊢ e ⇐ τ ~> d2 :: τ2 ⊣ Δ2 →

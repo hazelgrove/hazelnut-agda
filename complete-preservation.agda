@@ -1,6 +1,6 @@
 open import Nat
 open import Prelude
-open import core
+open import dynamics-core
 open import contexts
 open import preservation
 
@@ -8,9 +8,9 @@ module complete-preservation where
   -- if you substitute a complete term into a complete term, the result is
   -- still complete.
   cp-subst : ∀ {x d1 d2} →
-           d1 dcomplete →
-           d2 dcomplete →
-           ([ d2 / x ] d1) dcomplete
+             d1 dcomplete →
+             d2 dcomplete →
+             ([ d2 / x ] d1) dcomplete
   cp-subst {x = y} (DCVar {x = x}) dc2 with natEQ x y
   cp-subst DCVar dc2 | Inl refl = dc2
   cp-subst DCVar dc2 | Inr x₂ = DCVar
@@ -37,15 +37,17 @@ module complete-preservation where
   -- bound in any of the constructors explicitly since it's only in the
   -- lambda case; so below i have no idea how else to get a name for it,
   -- instead of leaving it dotted in the context
-  lem-proj : {x : Nat} {d : ihexp} { τ : htyp} → (·λ_[_]_ x τ d) dcomplete → Σ[ y ∈ Nat ] (y == x)
+  lem-proj : {x : Nat} {d : ihexp} { τ : htyp} →
+             (·λ x ·[ τ ] d) dcomplete →
+             Σ[ y ∈ Nat ] (y == x)
   lem-proj {x} (DCLam dc x₁) = x , refl
 
   -- a complete well typed term steps to a complete term.
   cp-rhs : ∀{d τ d' Δ} →
-             d dcomplete →
-             Δ , ∅ ⊢ d :: τ →
-             d ↦ d' →
-             d' dcomplete
+           d dcomplete →
+           Δ , ∅ ⊢ d :: τ →
+           d ↦ d' →
+           d' dcomplete
   cp-rhs dc TANum (Step FHOuter () FHOuter)
   cp-rhs (DCPlus dc dc₁) (TAPlus wt wt₁) (Step FHOuter (ITPlus refl) FHOuter) = DCNum
   cp-rhs (DCPlus dc dc₁) (TAPlus wt wt₁) (Step (FHPlus1 x) x₁ (FHPlus1 x₂))

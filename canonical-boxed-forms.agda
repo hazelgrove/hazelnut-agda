@@ -1,7 +1,7 @@
 open import Nat
 open import Prelude
 open import contexts
-open import core
+open import dynamics-core
 
 open import canonical-value-forms
 
@@ -18,7 +18,7 @@ module canonical-boxed-forms where
   data cbf-arr : (Δ : hctx) (d : ihexp) (τ1 τ2 : htyp) → Set where
     CBFALam : ∀{Δ d τ1 τ2} →
       Σ[ x ∈ Nat ] Σ[ d' ∈ ihexp ]
-        ((d == (·λ x [ τ1 ] d')) ×
+        ((d == (·λ x ·[ τ1 ] d')) ×
          (Δ , ■ (x , τ1) ⊢ d' :: τ2)
         )
         → cbf-arr Δ d τ1 τ2

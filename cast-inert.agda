@@ -1,6 +1,6 @@
 open import Nat
 open import Prelude
-open import core
+open import dynamics-core
 open import contexts
 open import typed-elaboration
 open import lemmas-gcomplete
@@ -47,21 +47,53 @@ module cast-inert where
   -- removed. note that this is a syntactic rewrite and it goes under
   -- binders.
   data no-id-casts : ihexp → ihexp → Set where
-    NICNum    : ∀{n} → no-id-casts (N n) (N n)
-    NICPlus   : ∀{d1 d2 d1' d2'} → no-id-casts d1 d1' → no-id-casts d2 d2' → no-id-casts (d1 ·+ d2) (d1' ·+ d2')
-    NICVar    : ∀{x} → no-id-casts (X x) (X x)
-    NICLam    : ∀{x τ d d'} → no-id-casts d d' → no-id-casts (·λ x [ τ ] d) (·λ x [ τ ] d')
-    NICAp     : ∀{d1 d2 d1' d2'} → no-id-casts d1 d1' → no-id-casts d2 d2' → no-id-casts (d1 ∘ d2) (d1' ∘ d2')
-    NICInl    : ∀{d τ d'} → no-id-casts d d' → no-id-casts (inl τ d) (inl τ d')
-    NICInr    : ∀{d τ d'} → no-id-casts d d' → no-id-casts (inr τ d) (inr τ d')
-    NICCase   : ∀{d x d1 y d2 d' d1' d2'} → no-id-casts d d' → no-id-casts d1 d1' → no-id-casts d2 d2' → no-id-casts (case d x d1 y d2) (case d' x d1' y d2')
-    NICPair   : ∀{d1 d2 d1' d2'} → no-id-casts d1 d1' → no-id-casts d2 d2' → no-id-casts ⟨ d1 , d2 ⟩ ⟨ d1' , d2' ⟩
-    NICFst    : ∀{d d'} → no-id-casts d d' → no-id-casts (fst d) (fst d')
-    NICSnd    : ∀{d d'} → no-id-casts d d' → no-id-casts (snd d) (snd d')
-    NICHole   : ∀{u} → no-id-casts (⦇-⦈⟨ u ⟩) (⦇-⦈⟨ u ⟩)
-    NICNEHole : ∀{d d' u} → no-id-casts d d' → no-id-casts (⦇⌜ d ⌟⦈⟨ u ⟩) (⦇⌜ d' ⌟⦈⟨ u ⟩)
-    NICCast   : ∀{d d' τ} → no-id-casts d d' → no-id-casts (d ⟨ τ ⇒ τ ⟩) d'
-    NICFailed : ∀{d d' τ1 τ2} → no-id-casts d d' → no-id-casts (d ⟨ τ1 ⇒⦇-⦈⇏ τ2 ⟩) (d' ⟨ τ1 ⇒⦇-⦈⇏ τ2 ⟩)
+    NICNum    : ∀{n} →
+                no-id-casts (N n) (N n)
+    NICPlus   : ∀{d1 d2 d1' d2'} →
+                no-id-casts d1 d1' →
+                no-id-casts d2 d2' →
+                no-id-casts (d1 ·+ d2) (d1' ·+ d2')
+    NICVar    : ∀{x} →
+                no-id-casts (X x) (X x)
+    NICLam    : ∀{x τ d d'} →
+                no-id-casts d d' →
+                no-id-casts (·λ x ·[ τ ] d) (·λ x ·[ τ ] d')
+    NICAp     : ∀{d1 d2 d1' d2'} →
+                no-id-casts d1 d1' →
+                no-id-casts d2 d2' →
+                no-id-casts (d1 ∘ d2) (d1' ∘ d2')
+    NICInl    : ∀{d τ d'} →
+                no-id-casts d d' →
+                no-id-casts (inl τ d) (inl τ d')
+    NICInr    : ∀{d τ d'} →
+                no-id-casts d d' →
+                no-id-casts (inr τ d) (inr τ d')
+    NICCase   : ∀{d x d1 y d2 d' d1' d2'} →
+                no-id-casts d d' →
+                no-id-casts d1 d1' →
+                no-id-casts d2 d2' →
+                no-id-casts (case d x d1 y d2) (case d' x d1' y d2')
+    NICPair   : ∀{d1 d2 d1' d2'} →
+                no-id-casts d1 d1' →
+                no-id-casts d2 d2' →
+                no-id-casts ⟨ d1 , d2 ⟩ ⟨ d1' , d2' ⟩
+    NICFst    : ∀{d d'} →
+                no-id-casts d d' →
+                no-id-casts (fst d) (fst d')
+    NICSnd    : ∀{d d'} →
+                no-id-casts d d' →
+                no-id-casts (snd d) (snd d')
+    NICHole   : ∀{u} →
+                no-id-casts (⦇-⦈⟨ u ⟩) (⦇-⦈⟨ u ⟩)
+    NICNEHole : ∀{d d' u} →
+                no-id-casts d d' →
+                no-id-casts (⦇⌜ d ⌟⦈⟨ u ⟩) (⦇⌜ d' ⌟⦈⟨ u ⟩)
+    NICCast   : ∀{d d' τ} →
+                no-id-casts d d' →
+                no-id-casts (d ⟨ τ ⇒ τ ⟩) d'
+    NICFailed : ∀{d d' τ1 τ2} →
+                no-id-casts d d' →
+                no-id-casts (d ⟨ τ1 ⇒⦇-⦈⇏ τ2 ⟩) (d' ⟨ τ1 ⇒⦇-⦈⇏ τ2 ⟩)
 
   -- removing identity casts doesn't change the type
   no-id-casts-type : ∀{Γ Δ d τ d' } → Δ , Γ ⊢ d :: τ →

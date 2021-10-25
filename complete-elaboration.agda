@@ -1,6 +1,6 @@
 open import Nat
 open import Prelude
-open import core
+open import dynamics-core
 open import contexts
 open import typed-elaboration
 open import lemmas-gcomplete
@@ -40,6 +40,20 @@ module complete-elaboration where
     complete-elaboration-synth gc (ECPair ec ec₁) (ESPair {Δ1 = Δ1} {Δ2 = Δ2} x x₁ x₂ x₃)
       with complete-elaboration-synth gc ec x₂ | complete-elaboration-synth gc ec₁ x₃
     ... | ih1 , ih2 , ih3 | ih1' , ih2' , ih3' = DCPair ih1 ih1' , TCProd ih2 ih2' , tr (λ qq → (qq ∪ Δ2) == ∅) (! ih3) ih3'
+    complete-elaboration-synth gc (ECFst ec) (ESFst x MPHole x₂)
+      with comp-synth gc ec x
+    ... | ()
+    complete-elaboration-synth gc (ECFst ec) (ESFst x MPProd x₂)
+      with comp-synth gc ec x
+    ... | TCProd τc1 τc2 with complete-elaboration-ana gc ec (TCProd τc1 τc2) x₂
+    ... | ih1 , ih2 , ih3 = DCFst (DCCast ih1 ih2 (TCProd τc1 τc2)) , τc1 , ih3
+    complete-elaboration-synth gc (ECSnd ec) (ESSnd x MPHole x₂)
+      with comp-synth gc ec x
+    ... | ()
+    complete-elaboration-synth gc (ECSnd ec) (ESSnd x MPProd x₂)
+      with comp-synth gc ec x
+    ... | TCProd τc1 τc2 with complete-elaboration-ana gc ec (TCProd τc1 τc2) x₂
+    ... | ih1 , ih2 , ih3 = DCSnd (DCCast ih1 ih2 (TCProd τc1 τc2)) , τc2 , ih3
     
     complete-elaboration-ana : ∀{e τ τ' Γ Δ d} →
                                Γ gcomplete →

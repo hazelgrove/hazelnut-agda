@@ -1,6 +1,6 @@
 open import Prelude
 open import Nat
-open import core
+open import dynamics-core
 open import contexts
 open import lemmas-disjointness
 
@@ -21,6 +21,8 @@ module lemmas-freshness where
     fresh-elab-synth1 {Γ = Γ} apt (FRHLam2 x₂ frsh) (ESLam x₃ exp) = FLam x₂ (fresh-elab-synth1 (apart-extend1 Γ x₂ apt) frsh exp)
     fresh-elab-synth1 apt (FRHAp frsh frsh₁) (ESAp x₁ x₂ x₃ x₄ x₅ x₆) = FAp (FCast (fresh-elab-ana1 apt frsh x₅)) (FCast (fresh-elab-ana1 apt frsh₁ x₆))
     fresh-elab-synth1 apt (FRHPair frsh frsh₁) (ESPair x x₁ x₂ x₃) = FPair (fresh-elab-synth1 apt frsh x₂) (fresh-elab-synth1 apt frsh₁ x₃)
+    fresh-elab-synth1 apt (FRHFst frsh) (ESFst x x₁ x₂) = FFst (FCast (fresh-elab-ana1 apt frsh x₂))
+    fresh-elab-synth1 apt (FRHSnd frsh) (ESSnd x x₁ x₂) = FSnd (FCast (fresh-elab-ana1 apt frsh x₂))
     fresh-elab-synth1 apt FRHEHole ESEHole = FHole (EFId apt)
     fresh-elab-synth1 apt (FRHNEHole frsh) (ESNEHole x₁ exp) = FNEHole (EFId apt) (fresh-elab-synth1 apt frsh exp)
     
@@ -50,10 +52,11 @@ module lemmas-freshness where
     fresh-elab-synth2 (FLam x₂ frsh) (ESLam x₃ exp) = FRHLam2 x₂ (fresh-elab-synth2 frsh exp)
     fresh-elab-synth2 (FAp (FCast frsh) (FCast frsh₁)) (ESAp x₁ x₂ x₃ x₄ x₅ x₆) = FRHAp (fresh-elab-ana2 frsh x₅) (fresh-elab-ana2 frsh₁ x₆)
     fresh-elab-synth2 (FPair frsh frsh₁) (ESPair x x₁ x₂ x₃) = FRHPair (fresh-elab-synth2 frsh x₂) (fresh-elab-synth2 frsh₁ x₃)
+    fresh-elab-synth2 (FFst (FCast frsh)) (ESFst x x₁ x₂) = FRHFst (fresh-elab-ana2 frsh x₂)
+    fresh-elab-synth2 (FSnd (FCast frsh)) (ESSnd x x₁ x₂) = FRHSnd (fresh-elab-ana2 frsh x₂)
     fresh-elab-synth2 (FHole x₁) ESEHole = FRHEHole
     fresh-elab-synth2 (FNEHole x₁ frsh) (ESNEHole x₂ exp) = FRHNEHole (fresh-elab-synth2 frsh exp)
     fresh-elab-synth2 (FCast frsh) (ESAsc x₁) = FRHAsc (fresh-elab-ana2 frsh x₁)
-    
     
     fresh-elab-ana2 : ∀{ x e τ d τ' Γ Δ} →
                       fresh x d →

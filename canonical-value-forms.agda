@@ -1,7 +1,7 @@
 open import Nat
 open import Prelude
 open import contexts
-open import core
+open import dynamics-core
 
 module canonical-value-forms where
   canonical-value-forms-num : ∀{Δ d} →
@@ -20,10 +20,11 @@ module canonical-value-forms where
                               Δ , ∅ ⊢ d :: (τ1 ==> τ2) →
                               d val →
                               Σ[ x ∈ Nat ] Σ[ d' ∈ ihexp ]
-                                ((d == (·λ x [ τ1 ] d')) ×
+                                ((d == (·λ x ·[ τ1 ] d')) ×
                                  (Δ , ■ (x , τ1) ⊢ d' :: τ2))
   canonical-value-forms-arr (TAVar x₁) ()
-  canonical-value-forms-arr {Δ = Δ} {d = ·λ x [ τ1 ] d} {τ1 = τ1} {τ2 = τ2} (TALam _ wt) VLam = _ , _ , refl , tr (λ Γ → Δ , Γ ⊢ d :: τ2) (extend-empty x τ1) wt
+  canonical-value-forms-arr {Δ = Δ} {d = ·λ x ·[ τ1 ] d} {τ1 = τ1} {τ2 = τ2} (TALam _ wt) VLam
+    = _ , _ , refl , tr (λ Γ → Δ , Γ ⊢ d :: τ2) (extend-empty x τ1) wt
   canonical-value-forms-arr (TAAp wt wt₁) ()
   canonical-value-forms-arr (TAEHole x x₁) ()
   canonical-value-forms-arr (TANEHole x wt x₁) ()

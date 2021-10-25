@@ -1,6 +1,6 @@
 open import Nat
 open import Prelude
-open import core
+open import dynamics-core
 
 open import lemmas-gcomplete
 
@@ -43,7 +43,7 @@ module lemmas-complete where
   complete-consistency (TCProd consis consis₁) (TCProd comp1 comp2) (TCProd comp3 comp4)
     with complete-consistency consis comp1 comp3 | complete-consistency consis₁ comp2 comp4
   ... | refl | refl = refl
-  
+
   -- a well typed complete term is assigned a complete type
   complete-ta : ∀{Γ Δ d τ} → (Γ gcomplete) →
                              (Δ , Γ ⊢ d :: τ) →
@@ -80,16 +80,24 @@ module lemmas-complete where
                Γ ⊢ e => τ →
                τ tcomplete
   comp-synth gc ec SNum = TCNum
-  comp-synth gc ec (SPlus x x₁ x₂) = TCNum
+  comp-synth gc ec (SPlus x x₁) = TCNum
   comp-synth gc (ECAsc x ec) (SAsc x₁) = x
   comp-synth gc ec (SVar x) = gc _ _ x
-  comp-synth gc (ECAp ec ec₁) (SAp _ wt MAHole x₁) with comp-synth gc ec wt
+  comp-synth gc (ECAp ec ec₁) (SAp wt MAHole x₁) with comp-synth gc ec wt
   ... | ()
-  comp-synth gc (ECAp ec ec₁) (SAp _ wt MAArr x₁) with comp-synth gc ec wt
-  comp-synth gc (ECAp ec ec₁) (SAp _ wt MAArr x₁) | TCArr qq qq₁ = qq₁
+  comp-synth gc (ECAp ec ec₁) (SAp wt MAArr x₁) with comp-synth gc ec wt
+  comp-synth gc (ECAp ec ec₁) (SAp wt MAArr x₁) | TCArr qq qq₁ = qq₁
   comp-synth gc () SEHole
-  comp-synth gc () (SNEHole _ wt)
+  comp-synth gc () (SNEHole wt)
   comp-synth gc (ECLam2 ec x₁) (SLam x₂ wt) = TCArr x₁ (comp-synth (gcomp-extend gc x₁ x₂) ec wt)
-  comp-synth gc (ECPair ec ec₁) (SPair x wt wt₁)
+  comp-synth gc (ECPair ec ec₁) (SPair wt wt₁)
     with comp-synth gc ec wt | comp-synth gc ec₁ wt₁
   ... | τc1 | τc2 = TCProd τc1 τc2
+  comp-synth gc (ECFst ec) (SFst wt MPHole) with comp-synth gc ec wt
+  ... | ()
+  comp-synth gc (ECFst ec) (SFst wt MPProd) with comp-synth gc ec wt
+  ... | TCProd τc1 τc2 = τc1
+  comp-synth gc (ECSnd ec) (SSnd wt MPHole) with comp-synth gc ec wt
+  ... | ()
+  comp-synth gc (ECSnd ec) (SSnd wt MPProd) with comp-synth gc ec wt
+  ... | TCProd τc1 τc2 = τc2

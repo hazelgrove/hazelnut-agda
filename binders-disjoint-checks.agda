@@ -1,6 +1,6 @@
 open import Prelude
 open import Nat
-open import core
+open import dynamics-core
 
 
 module binders-disjoint-checks where
@@ -17,7 +17,7 @@ module binders-disjoint-checks where
   lem-bd-num {d = N x} = BDNum
   lem-bd-num {d = d ·+ d₁} = BDPlus lem-bd-num lem-bd-num
   lem-bd-num {d = X x} = BDVar
-  lem-bd-num {d = ·λ x [ x₁ ] d} = BDLam lem-bd-num UBNum
+  lem-bd-num {d = ·λ x ·[ x₁ ] d} = BDLam lem-bd-num UBNum
   lem-bd-num {d = d ∘ d₁} = BDAp lem-bd-num lem-bd-num
   lem-bd-num {d = inl x d} = BDInl lem-bd-num
   lem-bd-num {d = inr x d} = BDInr lem-bd-num
@@ -101,7 +101,7 @@ module binders-disjoint-checks where
   lem-bd-var {d = N x} = BDNum
   lem-bd-var {d = d ·+ d₁} = BDPlus lem-bd-var lem-bd-var
   lem-bd-var {d = X x} = BDVar
-  lem-bd-var {d = ·λ x [ x₁ ] d} = BDLam lem-bd-var UBVar
+  lem-bd-var {d = ·λ x ·[ x₁ ] d} = BDLam lem-bd-var UBVar
   lem-bd-var {d = d ∘ d₁} = BDAp lem-bd-var lem-bd-var
   lem-bd-var {d = inl x d} = BDInl lem-bd-var
   lem-bd-var {d = inr x d} = BDInr lem-bd-var
@@ -118,13 +118,13 @@ module binders-disjoint-checks where
   lem-bdσ-into-lam : ∀{x τ d σ} →
                      binders-disjoint-σ σ d →
                      unbound-in-σ x σ →
-                     binders-disjoint-σ σ (·λ_[_]_ x τ d)
+                     binders-disjoint-σ σ (·λ x ·[ τ ] d)
   lem-bdσ-into-lam BDσId UBσId = BDσId
   lem-bdσ-into-lam (BDσSubst x bd x₁) (UBσSubst x₂ ub x₃) =
     BDσSubst (BDLam x x₂) (lem-bdσ-into-lam bd ub) (UBLam2 (flip x₃) x₁)
   
   lem-bdσ-lam : ∀{σ x τ d} →
-                binders-disjoint-σ σ (·λ_[_]_ x τ d) →
+                binders-disjoint-σ σ (·λ x ·[ τ ] d) →
                 binders-disjoint-σ σ d × unbound-in-σ x σ
   lem-bdσ-lam BDσId = BDσId , UBσId
   lem-bdσ-lam (BDσSubst (BDLam x₁ x) bd (UBLam2 x₂ ub))
@@ -132,7 +132,7 @@ module binders-disjoint-checks where
   ... | bdσ , ub' = (BDσSubst x₁ bdσ ub) , (UBσSubst x ub' (flip x₂))
 
   lem-bd-lam : ∀{d1 x τ1 d} →
-               binders-disjoint d1 (·λ_[_]_ x τ1 d) →
+               binders-disjoint d1 (·λ x ·[ τ1 ] d) →
                binders-disjoint d1 d × unbound-in x d1
   lem-bd-lam BDNum = BDNum , UBNum
   lem-bd-lam (BDPlus bd bd₁)
@@ -724,7 +724,7 @@ module binders-disjoint-checks where
       with lem-bd-plus bd
     ... | bd1 , bd2 = BDPlus (binders-disjoint-sym bd1) (binders-disjoint-sym bd2)
     binders-disjoint-sym {d2 = X x} bd = BDVar
-    binders-disjoint-sym {d2 = ·λ x [ x₁ ] d2} bd
+    binders-disjoint-sym {d2 = ·λ x ·[ x₁ ] d2} bd
       with lem-bd-lam bd
     ... | bd' , ub = BDLam (binders-disjoint-sym bd') ub
     binders-disjoint-sym {d2 = d2 ∘ d3} bd

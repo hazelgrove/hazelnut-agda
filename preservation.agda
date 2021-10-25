@@ -1,6 +1,6 @@
 open import Nat
 open import Prelude
-open import core
+open import dynamics-core
 open import contexts
 
 open import binders-disjoint-checks
@@ -82,6 +82,7 @@ module preservation where
                    d →> d' →
                    Δ , Γ ⊢ d' :: τ
   preserve-trans bd TANum ()
+  preserve-trans bd (TAPlus ta TANum) (ITPlus x) = TANum
   preserve-trans bd (TAVar x₁) ()
   preserve-trans bd (TALam _ ta) ()
   preserve-trans (BUAp (BULam bd x₁) bd₁ (BDLam x₂ x₃)) (TAAp (TALam apt ta) ta₁) ITLam = lem-subst apt x₂ bd₁ ta ta₁
@@ -111,15 +112,21 @@ module preservation where
   preserve-trans bd (TASnd (TACast ta x)) ITSndCast
     with ~prod x
   ... | τ1~τ2 , τ3~τ4 = TACast (TASnd ta) τ3~τ4
+  preserve-trans bd (TACast ta TCRefl) (ITExpand ())
   preserve-trans bd (TACast ta TCHole1) (ITGround (MGSum x₁)) = TACast (TACast ta (TCSum TCHole1 TCHole1)) TCHole1
+  preserve-trans bd (TACast ta TCHole1) (ITExpand ())
   preserve-trans bd (TACast ta TCHole2) (ITExpand (MGSum x₁)) = TACast (TACast ta TCHole2) (TCSum TCHole2 TCHole2)
   preserve-trans bd (TACast ta TCHole1) (ITGround (MGProd x₁)) = TACast (TACast ta (TCProd TCHole1 TCHole1)) TCHole1
   preserve-trans bd (TACast ta TCHole2) (ITExpand (MGProd x)) = TACast (TACast ta TCHole2) (TCProd TCHole2 TCHole2)
+
+
   
-  lem-bd-ε1 : ∀{d ε d0} → d == ε ⟦ d0 ⟧ → binders-unique d → binders-unique d0
+  lem-bd-ε1 : ∀{d ε d0} → d == ε ⟦ d0 ⟧ →
+              binders-unique d →
+              binders-unique d0
   lem-bd-ε1 FHOuter bd = bd
-  lem-bd-ε1 (FHPlus1 eps) ()
-  lem-bd-ε1 (FHPlus2 eps) ()
+  lem-bd-ε1 (FHPlus1 eps) (BUPlus bd bd₁ x) = lem-bd-ε1 eps bd
+  lem-bd-ε1 (FHPlus2 eps) (BUPlus bd bd₁ x) = lem-bd-ε1 eps bd₁
   lem-bd-ε1 (FHAp1 eps) (BUAp bd bd₁ x) = lem-bd-ε1 eps bd
   lem-bd-ε1 (FHAp2 eps) (BUAp bd bd₁ x) = lem-bd-ε1 eps bd₁
   lem-bd-ε1 (FHInl eps) (BUInl bd) = lem-bd-ε1 eps bd
@@ -136,10 +143,10 @@ module preservation where
   
   -- this is the main preservation theorem, gluing together the above
   preservation : {Δ : hctx} {d d' : ihexp} {τ : htyp} {Γ : tctx} →
-             binders-unique d →
-             Δ , Γ ⊢ d :: τ →
-             d ↦ d' →
-             Δ , Γ ⊢ d' :: τ
+                 binders-unique d →
+                 Δ , Γ ⊢ d :: τ →
+                 d ↦ d' →
+                 Δ , Γ ⊢ d' :: τ
   preservation bd D (Step x x₁ x₂)
     with wt-filling D x
   ... | (_ , wt) = wt-different-fill x D wt (preserve-trans (lem-bd-ε1 x bd) wt x₁) x₂

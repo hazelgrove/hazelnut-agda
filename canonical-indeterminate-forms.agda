@@ -1,7 +1,7 @@
 open import Nat
 open import Prelude
 open import contexts
-open import core
+open import dynamics-core
 open import type-assignment-unicity
 
 module canonical-indeterminate-forms where

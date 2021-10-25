@@ -1,6 +1,6 @@
 open import Prelude
 open import Nat
-open import core
+open import dynamics-core
 open import contexts
 open import contraction
 open import weakening
@@ -12,7 +12,12 @@ module lemmas-subst-ta where
   -- this is what makes the binders-unique assumption below good enough: it
   -- tells us that we can pick fresh variables
   mutual
-    binders-envfresh : ∀{Δ Γ Γ' y σ} → Δ , Γ ⊢ σ :s: Γ' → y # Γ → unbound-in-σ y σ → binders-unique-σ σ → envfresh y σ
+    binders-envfresh : ∀{Δ Γ Γ' y σ} →
+                       Δ , Γ ⊢ σ :s: Γ' →
+                       y # Γ →
+                       unbound-in-σ y σ →
+                       binders-unique-σ σ →
+                       envfresh y σ
     binders-envfresh {Γ' = Γ'} {y = y} (STAId x) apt unbound unique with ctxindirect Γ' y
     binders-envfresh {Γ' = Γ'} {y = y} (STAId x₁) apt unbound unique | Inl x = abort (somenotnone (! (x₁ y (π1 x) (π2 x)) · apt))
     binders-envfresh (STAId x₁) apt unbound unique | Inr x = EFId x
@@ -42,7 +47,7 @@ module lemmas-subst-ta where
     binders-fresh (TAInl wt) (BUInl bu) (UBInl ub) apt = FInl (binders-fresh wt bu ub apt)
     binders-fresh (TAInr wt) (BUInr bu) (UBInr ub) apt = FInr (binders-fresh wt bu ub apt)
     binders-fresh {Γ = Γ} (TACase wt x wt₁ x₁ wt₂) (BUCase bu bu₁ bu₂ x₂ x₃ x₄ x₅ x₆ x₇ x₈ x₉ x₁₀) (UBCase ub x₁₁ ub₁ x₁₂ ub₂) apt = FCase (binders-fresh wt bu ub apt) x₁₁ (binders-fresh wt₁ bu₁ ub₁ (apart-extend1 Γ x₁₁ apt)) x₁₂ (binders-fresh wt₂ bu₂ ub₂ (apart-extend1 Γ x₁₂ apt))
-    binders-fresh (TAPlus wt wt₁) () ub apt
+    binders-fresh (TAPlus wt wt₁) (BUPlus bu bu₁ x) (UBPlus ub ub₁) apt = FPlus (binders-fresh wt bu ub apt) (binders-fresh wt₁ bu₁ ub₁ apt)
     binders-fresh (TAPair wt wt₁) (BUPair bu bu₁ x) (UBPair ub ub₁) apt = FPair (binders-fresh wt bu ub apt) (binders-fresh wt₁ bu₁ ub₁ apt)
     binders-fresh (TAFst wt) (BUFst bu) (UBFst ub) apt = FFst (binders-fresh wt bu ub apt)
     binders-fresh (TASnd wt) (BUSnd bu) (UBSnd ub) apt = FSnd (binders-fresh wt bu ub apt)
@@ -125,6 +130,7 @@ module lemmas-subst-ta where
                    Δ , Γ ,, (x , τ2) ⊢ d :: τ →
                    Δ , Γ ,, (x , τ1) ⊢ [ (X x ⟨ τ1 ⇒ τ2 ⟩) / x ] d :: τ
   lem-subst-cast-ta apt bu con TANum = TANum
+  lem-subst-cast-ta apt (BUPlus bu bu₁ x) con (TAPlus wt wt₁) = TAPlus (lem-subst-cast-ta apt bu con wt) (lem-subst-cast-ta apt bu₁ con wt₁)
   lem-subst-cast-ta {Γ = Γ} {x = x} {τ1 = τ1} {τ2 = τ2} apt bu con (TAVar {x = x'} x₁)
       with natEQ x x'
   ... | Inl refl with natEQ x' x

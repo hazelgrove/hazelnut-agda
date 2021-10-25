@@ -1,6 +1,6 @@
 open import Nat
 open import Prelude
-open import core
+open import dynamics-core
 open import contexts
 
 open import progress
@@ -36,20 +36,20 @@ module continuity where
                        binders-unique d
 
 
-  continuity : ∀{ e τ α e' τ' }
-             → binders-unique-z e
-             → ∅ ⊢ (e ◆) => τ
-             → ∅ ⊢ e => τ ~ α ~> e' => τ'
-             → Σ[ Δ ∈ hctx ] Σ[ d ∈ ihexp ]
-                (   ∅ ⊢ (e' ◆) ⇒ τ' ~> d ⊣ Δ
-                  × Δ , ∅ ⊢ d :: τ'
-                  × ( (Σ[ d' ∈ ihexp ]( d ↦ d' × Δ , ∅ ⊢ d' :: τ' ))
-                     + d boxedval
-                     + d indet
-                    )
-                )
-  continuity bu wt action with sensibility wt action
-  ... | sense with elaborability-synth sense
+  continuity : ∀{e τ α e' τ'} →
+               binders-unique-z e →
+               ∅ ⊢ (e ◆) => τ →
+               ∅ ⊢ e => τ ~ α ~> e' => τ' →
+               holes-unique (e' ◆) →
+               Σ[ Δ ∈ hctx ] Σ[ d ∈ ihexp ]
+                 (∅ ⊢ (e' ◆) ⇒ τ' ~> d ⊣ Δ ×
+                  Δ , ∅ ⊢ d :: τ' ×
+                  ((Σ[ d' ∈ ihexp ]( d ↦ d' × Δ , ∅ ⊢ d' :: τ' )) +
+                    d boxedval +
+                    d indet)
+                 )
+  continuity bu wt action hu with sensibility wt action
+  ... | sense with elaborability-synth hu sense
   ... | d , Δ , exp with typed-elaboration-synth exp
   ... | d::τ' with progress d::τ'
   ... | (S (d' , stp)) =  Δ , d , exp , d::τ' , Inl (d' , stp , preservation (expansion-unique (binders-unique-cursor1 (binders-unique-sensibility bu action)) exp) d::τ' stp)

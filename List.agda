@@ -11,10 +11,12 @@ module List where
     [] : List A
     _::_ : A → List A → List A
 
-  -- shorthand notation for the singleton list
+  {-# BUILTIN LIST List #-}
+  
+  -- shorthand notation for small lists
   [_] : {A : Set} → A → List A
   [ x ] = x :: []
-
+  
   -- list append
   _++_ : {A : Set} → List A → List A → List A
   [] ++ l2 = l2

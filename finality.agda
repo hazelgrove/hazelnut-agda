@@ -1,5 +1,5 @@
 open import Prelude
-open import core
+open import dynamics-core
 
 open import progress-checks
 
