@@ -20,7 +20,6 @@ module weakening where
                    Δ1 ## Δ2 →
                    Δ1 , Γ ⊢ d :: τ →
                    (Δ1 ∪ Δ2) , Γ ⊢ d :: τ
-    --weaken-ta-Δ1 disj TAConst = TAConst
     weaken-ta-Δ1 disj TANum = TANum
     weaken-ta-Δ1 disj (TAPlus wt wt₁) = TAPlus (weaken-ta-Δ1 disj wt) (weaken-ta-Δ1 disj wt₁)
     weaken-ta-Δ1 disj (TAVar x₁) = TAVar x₁

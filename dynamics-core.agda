@@ -416,7 +416,9 @@ module dynamics-core where
                  Δ , Γ ⊢ d1 :: num →
                  Δ , Γ ⊢ d2 :: num →
                  Δ , Γ ⊢ (d1 ·+ d2) :: num
-      TAVar    : ∀{Δ Γ x τ} → (x , τ) ∈ Γ → Δ , Γ ⊢ X x :: τ
+      TAVar    : ∀{Δ Γ x τ} →
+                 (x , τ) ∈ Γ →
+                 Δ , Γ ⊢ X x :: τ
       TALam    : ∀{Δ Γ x τ1 d τ2} →
                  x # Γ →
                  Δ , (Γ ,, (x , τ1)) ⊢ d :: τ2 →

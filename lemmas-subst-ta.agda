@@ -124,11 +124,11 @@ module lemmas-subst-ta where
   lem-subst-cast-sta {Δ = Δ} {Γ = Γ} {x = x} {τ1 = τ1} {τ2 = τ2} {Γ' = Γ'} x#Γ con (STASubst {σ = σ} {y = y} {d = d} {τ = τ} wsta wt) = STASubst (STASubst (tr (λ c → Δ , c ,, (y , τ) ⊢ σ :s: Γ') (! (update Γ x τ1 τ2)) wsta) (tr (λ c → Δ , c ⊢ d :: τ) (! (update Γ x τ1 τ2)) wt)) (TACast (TAVar (ctx-top Γ x τ1 x#Γ)) con)
   
   lem-subst-cast-ta : ∀{Δ Γ d x τ1 τ2 τ} →
-                   x # Γ →
-                   binders-unique d →
-                   τ1 ~ τ2 →
-                   Δ , Γ ,, (x , τ2) ⊢ d :: τ →
-                   Δ , Γ ,, (x , τ1) ⊢ [ (X x ⟨ τ1 ⇒ τ2 ⟩) / x ] d :: τ
+                      x # Γ →
+                      binders-unique d →
+                      τ1 ~ τ2 →
+                      Δ , Γ ,, (x , τ2) ⊢ d :: τ →
+                      Δ , Γ ,, (x , τ1) ⊢ [ (X x ⟨ τ1 ⇒ τ2 ⟩) / x ] d :: τ
   lem-subst-cast-ta apt bu con TANum = TANum
   lem-subst-cast-ta apt (BUPlus bu bu₁ x) con (TAPlus wt wt₁) = TAPlus (lem-subst-cast-ta apt bu con wt) (lem-subst-cast-ta apt bu₁ con wt₁)
   lem-subst-cast-ta {Γ = Γ} {x = x} {τ1 = τ1} {τ2 = τ2} apt bu con (TAVar {x = x'} x₁)
