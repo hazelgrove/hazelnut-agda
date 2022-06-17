@@ -3,6 +3,11 @@ open import Prelude
 open import contexts
 
 module core where
+  -- type patterns
+  data htyppat : Set where
+    α   : Nat → htyppat
+    ⦇-⦈ : htyppat
+
   -- types
   data htyp : Set where
     num   : htyp
@@ -10,6 +15,12 @@ module core where
     _==>_ : htyp → htyp → htyp
     _⊕_   : htyp → htyp → htyp
     _⊠_   : htyp → htyp → htyp
+    α     : Nat → htyp
+    ⦇⌜_⌟⦈ : Nat → htyp
+
+  -- the type of type variable contexts, i.e. Θ
+  tvctx : Set
+  tvctx = htyp ctx
     
   -- type constructors bind very tightly
   infixr 25  _==>_
@@ -38,11 +49,43 @@ module core where
   tctx : Set
   tctx = htyp ctx
 
+  -- type substitution
+  [_/_]_ : htyp → htyppat → htyp → htyp 
+  [ τ / ⦇-⦈ ] τ'           = τ'
+  [ τ / α a ] num          = num
+  [ τ / α a ] (τ1 ==> τ2)  = ([ τ / α a ] τ1) ==> ([ τ / α a ] τ2)
+  [ τ / α a ] (τ1 ⊕ τ2)    = ([ τ / α a ] τ1) ⊕ ([ τ / α a ] τ2)
+  [ τ / α a ] (τ1 ⊠ τ2)    = ([ τ / α a ] τ1) ⊠ ([ τ / α a ] τ2)
+  [ τ / α a ] τ'@(α a')    with natEQ a a'
+  ... | Inl refl           = τ
+  ... | Inr a≢a'           = τ'
+  [ τ / α a ] ⦇-⦈          = ⦇-⦈
+  [ α a'' / α a ] ⦇⌜ a' ⌟⦈ with natEQ a a'
+  ... | Inl refl           = ⦇⌜ a'' ⌟⦈
+  ... | Inr a≢a'           = ⦇⌜ a' ⌟⦈
+  [ τ / α a ] ⦇⌜ a' ⌟⦈     = {! !}  -- TODO: Not sure what to do here
+
+  -- type validity
+  data _valid : {Θ : tvctx} (t : htyp) -> Set where
+    TVArr    : {Θ : tvctx} {τ1 τ2 : htyp} →
+               τ1 valid →
+               τ2 valid →
+               τ1 ==> τ2 valid
+    TVVar    : {Θ : tvctx} {τ : htyp} (a : Nat) →
+               (a , τ) ∈ Θ →
+               α a valid 
+    TVEHole  : {Θ : tvctx} → ⦇-⦈ valid
+    TVNEHole : {Θ : tvctx} (a : Nat) →
+               a # Θ →
+               ⦇⌜ a ⌟⦈ valid
+
   -- type consistency
   data _~_ : (t1 t2 : htyp) → Set where
     TCRefl  : {τ : htyp} → τ ~ τ
     TCHole1 : {τ : htyp} → τ ~ ⦇-⦈
     TCHole2 : {τ : htyp} → ⦇-⦈ ~ τ
+    TCNEHole1 : {a : Nat} {τ : htyp} → ⦇⌜ a ⌟⦈ ~ τ
+    TCNEHole2 : {a : Nat} {τ : htyp} → τ ~ ⦇⌜ a ⌟⦈
     TCArr   : {τ1 τ2 τ1' τ2' : htyp} →
               τ1 ~ τ1' →
               τ2 ~ τ2' →
