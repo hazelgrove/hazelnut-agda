@@ -66,18 +66,18 @@ module core where
   [ τ / α a ] ⦇⌜ a' ⌟⦈     = {! !}  -- TODO: Not sure what to do here
 
   -- type validity
-  data _valid : {Θ : tvctx} (t : htyp) -> Set where
+  data _tvalid : {Θ : tvctx} (t : htyp) -> Set where
     TVArr    : {Θ : tvctx} {τ1 τ2 : htyp} →
-               τ1 valid →
-               τ2 valid →
-               τ1 ==> τ2 valid
+               τ1 tvalid →
+               τ2 tvalid →
+               τ1 ==> τ2 tvalid
     TVVar    : {Θ : tvctx} {τ : htyp} (a : Nat) →
                (a , τ) ∈ Θ →
-               α a valid 
-    TVEHole  : {Θ : tvctx} → ⦇-⦈ valid
+               α a tvalid 
+    TVEHole  : {Θ : tvctx} → ⦇-⦈ tvalid
     TVNEHole : {Θ : tvctx} (a : Nat) →
                a # Θ →
-               ⦇⌜ a ⌟⦈ valid
+               ⦇⌜ a ⌟⦈ tvalid
 
   -- type consistency
   data _~_ : (t1 t2 : htyp) → Set where
