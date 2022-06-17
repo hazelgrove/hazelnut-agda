@@ -1,4 +1,3 @@
-{-# OPTIONS --alow-unsolved-metas #-}
 open import Nat
 open import Prelude
 open import contexts
@@ -61,10 +60,7 @@ module core where
   ... | Inl refl           = τ
   ... | Inr a≢a'           = τ'
   [ τ / α a ] ⦇-⦈          = ⦇-⦈
-  [ α a'' / α a ] ⦇⌜ a' ⌟⦈ with natEQ a a'
-  ... | Inl refl           = ⦇⌜ a'' ⌟⦈
-  ... | Inr a≢a'           = ⦇⌜ a' ⌟⦈
-  [ τ / α a ] ⦇⌜ a' ⌟⦈     = {! !}  -- TODO: Not sure what to do here
+  [ τ / α a ] ⦇⌜ a' ⌟⦈     = ⦇⌜ a' ⌟⦈
 
   -- type validity
   data _⊢_tvalid : (Θ : tvctx) (t : htyp) -> Set where
