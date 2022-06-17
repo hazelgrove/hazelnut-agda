@@ -1,3 +1,4 @@
+{-# OPTIONS --alow-unsolved-metas #-}
 open import Nat
 open import Prelude
 open import contexts
@@ -66,18 +67,18 @@ module core where
   [ τ / α a ] ⦇⌜ a' ⌟⦈     = {! !}  -- TODO: Not sure what to do here
 
   -- type validity
-  data _tvalid : {Θ : tvctx} (t : htyp) -> Set where
+  data _⊢_tvalid : (Θ : tvctx) (t : htyp) -> Set where
     TVArr    : {Θ : tvctx} {τ1 τ2 : htyp} →
-               τ1 tvalid →
-               τ2 tvalid →
-               τ1 ==> τ2 tvalid
+               Θ ⊢ τ1 tvalid →
+               Θ ⊢ τ2 tvalid →
+               Θ ⊢ τ1 ==> τ2 tvalid
     TVVar    : {Θ : tvctx} {τ : htyp} (a : Nat) →
                (a , τ) ∈ Θ →
-               α a tvalid 
-    TVEHole  : {Θ : tvctx} → ⦇-⦈ tvalid
+               Θ ⊢ α a tvalid 
+    TVEHole  : {Θ : tvctx} → Θ ⊢ ⦇-⦈ tvalid
     TVNEHole : {Θ : tvctx} (a : Nat) →
                a # Θ →
-               ⦇⌜ a ⌟⦈ tvalid
+               Θ ⊢ ⦇⌜ a ⌟⦈ tvalid
 
   -- type consistency
   data _~_ : (t1 t2 : htyp) → Set where
