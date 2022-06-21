@@ -50,17 +50,17 @@ module core where
   tctx = htyp ctx
 
   -- type substitution
-  [_/_]_ : htyp → htyppat → htyp → htyp 
-  [ τ / ⦇-⦈ ] τ'           = τ'
-  [ τ / α a ] num          = num
-  [ τ / α a ] (τ1 ==> τ2)  = ([ τ / α a ] τ1) ==> ([ τ / α a ] τ2)
-  [ τ / α a ] (τ1 ⊕ τ2)    = ([ τ / α a ] τ1) ⊕ ([ τ / α a ] τ2)
-  [ τ / α a ] (τ1 ⊠ τ2)    = ([ τ / α a ] τ1) ⊠ ([ τ / α a ] τ2)
-  [ τ / α a ] τ'@(α a')    with natEQ a a'
-  ... | Inl refl           = τ
-  ... | Inr a≢a'           = τ'
-  [ τ / α a ] ⦇-⦈          = ⦇-⦈
-  [ τ / α a ] ⦇⌜ a' ⌟⦈     = ⦇⌜ a' ⌟⦈
+  [_/_]'_ : htyp → htyppat → htyp → htyp 
+  [ τ / ⦇-⦈ ]' τ'           = τ'
+  [ τ / α a ]' num          = num
+  [ τ / α a ]' (τ1 ==> τ2)  = ([ τ / α a ]' τ1) ==> ([ τ / α a ]' τ2)
+  [ τ / α a ]' (τ1 ⊕ τ2)    = ([ τ / α a ]' τ1) ⊕ ([ τ / α a ]' τ2)
+  [ τ / α a ]' (τ1 ⊠ τ2)    = ([ τ / α a ]' τ1) ⊠ ([ τ / α a ]' τ2)
+  [ τ / α a ]' τ'@(α a')    with natEQ a a'
+  ... | Inl refl            = τ
+  ... | Inr a≢a'            = τ'
+  [ τ / α a ]' ⦇-⦈          = ⦇-⦈
+  [ τ / α a ]' ⦇⌜ a' ⌟⦈     = ⦇⌜ a' ⌟⦈
 
   -- type validity
   data _⊢_tvalid : (Θ : tvctx) (t : htyp) -> Set where
